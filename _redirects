@@ -1,0 +1,12 @@
+# Redirect rules for Netlify
+# Handle client-side routing
+/*    /index.html   200
+
+# API redirects (if needed in future)
+/api/*  https://api.vidcatch.pro/:splat  200
+
+# Legacy redirects
+/youtube  /platform/youtube  301
+/tiktok   /platform/tiktok   301
+/instagram /platform/instagram 301
+/facebook /platform/facebook 301
