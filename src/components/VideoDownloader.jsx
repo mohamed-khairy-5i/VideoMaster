@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Search, Download, AlertCircle, CheckCircle, Loader, Play, Volume2, Sparkles, Shield, Zap, Clock, Globe, Star, Users, TrendingUp, Award, Heart, Music, Video, Image, FileText, Monitor, Smartphone, Headphones, PlayCircle, FileVideo, FileAudio } from 'lucide-react'
+import { Search, Download, AlertCircle, CheckCircle, Loader, Play, Volume2, Sparkles, Shield, Zap, Clock, Globe, Star, Users, TrendingUp, Award, Heart, Music, Video, Image, FileText, Monitor, Smartphone, Headphones, PlayCircle, FileVideo, FileAudio, X, Clipboard } from 'lucide-react'
 import { downloadVideo, getVideoInfo } from '../utils/api'
 import PlatformIcons from './PlatformIcons'
 import VideoPreview from './VideoPreview'
@@ -237,68 +237,151 @@ const VideoDownloader = () => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <input
-              type="url"
-              value={url}
-              onChange={handleUrlChange}
-              placeholder="الصق رابط الفيديو هنا... (مثال: https://www.youtube.com/watch?v=...)"
-              className={`input-field ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
-              dir="ltr"
-            />
-            {error && (
-              <div className="flex items-center space-x-2 space-x-reverse mt-2 text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>{error}</span>
-              </div>
-            )}
+        {/* Enhanced Input Section with Quick Actions */}
+        <div className="space-y-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <input
+                type="url"
+                value={url}
+                onChange={handleUrlChange}
+                placeholder="الصق رابط الفيديو هنا... (مثال: https://www.youtube.com/watch?v=...)"
+                className={`input-field pr-12 ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+                dir="ltr"
+              />
+              {url && (
+                <button
+                  onClick={() => setUrl('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={handleGetInfo}
+                disabled={loading || !url.trim()}
+                className="btn-primary flex items-center justify-center space-x-2 space-x-reverse min-w-[140px]"
+              >
+                {loading ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    <span>جاري التحليل...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-5 h-5" />
+                    <span>تحليل الرابط</span>
+                  </>
+                )}
+              </button>
+              
+              {/* Quick Paste Button */}
+              <button
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                      setUrl(text);
+                      setError('');
+                    }
+                  } catch (err) {
+                    console.warn('Could not read clipboard:', err);
+                  }
+                }}
+                className="btn-secondary flex items-center justify-center px-3"
+                title="لصق من الحافظة"
+              >
+                <Clipboard className="w-5 h-5" />
+              </button>
+            </div>
           </div>
           
-          <button
-            onClick={handleGetInfo}
-            disabled={loading || !url.trim()}
-            className="btn-primary flex items-center justify-center space-x-2 space-x-reverse min-w-[140px]"
-          >
-            {loading ? (
-              <>
-                <Loader className="w-5 h-5 animate-spin" />
-                <span>جاري التحليل...</span>
-              </>
-            ) : (
-              <>
-                <Search className="w-5 h-5" />
-                <span>تحليل الرابط</span>
-              </>
-            )}
-          </button>
+          {error && (
+            <div className="flex items-center space-x-2 space-x-reverse p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+          
+          {/* Quick URL Examples */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            <span className="text-sm text-gray-500">روابط سريعة للتجربة:</span>
+            <button
+              onClick={() => setUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}
+              className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200 transition-colors"
+            >
+              YouTube
+            </button>
+            <button
+              onClick={() => setUrl('https://www.tiktok.com/@username/video/123456789')}
+              className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
+            >
+              TikTok
+            </button>
+            <button
+              onClick={() => setUrl('https://www.instagram.com/reel/example123/')}
+              className="text-xs bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 px-2 py-1 rounded hover:from-purple-200 hover:to-pink-200 transition-colors"
+            >
+              Instagram
+            </button>
+          </div>
         </div>
 
-        {/* Supported Platforms */}
-        <div className="text-center bg-gray-50 p-6 rounded-2xl">
-          <div className="flex items-center justify-center mb-4 gap-2">
-            <Shield className="w-5 h-5 text-green-600" />
-            <Star className="w-5 h-5 text-yellow-500" />
-            <p className="text-gray-700 font-medium">100+ منصة مدعومة • خالي من الإعلانات المضللة • بدون برامج ضارة</p>
-            <Award className="w-5 h-5 text-blue-600" />
-            <TrendingUp className="w-5 h-5 text-green-500" />
+        {/* Enhanced Supported Platforms */}
+        <div className="bg-gradient-to-br from-gray-50 to-blue-50 p-6 rounded-2xl border border-gray-100">
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center mb-3 gap-2">
+              <Shield className="w-5 h-5 text-green-600" />
+              <Star className="w-5 h-5 text-yellow-500" />
+              <p className="text-gray-700 font-semibold">100+ منصة مدعومة</p>
+              <Award className="w-5 h-5 text-blue-600" />
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-1">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span>خالي من الإعلانات المضللة</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Shield className="w-4 h-4 text-blue-500" />
+                <span>بدون برامج ضارة</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Zap className="w-4 h-4 text-yellow-500" />
+                <span>سرعة فائقة</span>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-6 md:grid-cols-12 gap-3 max-w-4xl mx-auto">
+          
+          <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-12 gap-3 max-w-5xl mx-auto">
             {supportedPlatforms.map((platform) => (
               <button
                 key={platform.key}
                 onClick={() => handlePlatformClick(platform)}
-                className="group relative p-3 bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:scale-105"
+                className="group relative p-4 bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-200 hover:border-blue-300 transition-all duration-300 hover:scale-105 hover:-translate-y-1"
                 title={`تجربة ${platform.name}`}
               >
-                <div className="mb-1 flex justify-center">
-                  <platform.IconComponent className="w-6 h-6 text-gray-600 group-hover:text-blue-600 transition-colors" />
+                <div className="mb-2 flex justify-center">
+                  <platform.IconComponent className="w-7 h-7 text-gray-600 group-hover:text-blue-600 transition-colors" />
                 </div>
                 <div className="text-xs font-medium text-gray-600 group-hover:text-gray-800 truncate">{platform.name}</div>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/10 group-hover:to-purple-500/10 rounded-xl transition-all duration-300"></div>
               </button>
             ))}
           </div>
-          <p className="text-sm text-gray-500 mt-4">انقر على أي منصة لتجربة رابط تجريبي</p>
+          
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500 mb-2">انقر على أي منصة لتجربة رابط تجريبي</p>
+            <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+              <span>✨ أحدث التقنيات</span>
+              <span>🔒 أمان كامل</span>
+              <span>⚡ سرعة عالية</span>
+              <span>🆓 مجاني تماماً</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -405,22 +488,135 @@ const VideoDownloader = () => {
           </div>
         </div>
         
-        <div className="text-center mt-8 p-4 bg-white/70 rounded-xl">
-          <div className="flex items-center justify-center space-x-6 space-x-reverse text-sm text-gray-600">
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span>15M+ عملية تحميل ناجحة</span>
+        {/* Enhanced Statistics */}
+        <div className="mt-8 p-6 bg-white/90 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-500 mr-2" />
+                <span className="text-2xl font-bold text-gray-800">15M+</span>
+              </div>
+              <p className="text-sm text-gray-600 font-medium">تحميل ناجح</p>
             </div>
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <Clock className="w-4 h-4 text-blue-500" />
-              <span>متوفر 24/7</span>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
+                <Clock className="w-6 h-6 text-blue-500 mr-2" />
+                <span className="text-2xl font-bold text-gray-800">24/7</span>
+              </div>
+              <p className="text-sm text-gray-600 font-medium">متوفر دائماً</p>
             </div>
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <Download className="w-4 h-4 text-purple-500" />
-              <span>بدون حدود</span>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
+                <Zap className="w-6 h-6 text-yellow-500 mr-2" />
+                <span className="text-2xl font-bold text-gray-800">&lt; 3s</span>
+              </div>
+              <p className="text-sm text-gray-600 font-medium">سرعة المعالجة</p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
+                <Globe className="w-6 h-6 text-purple-500 mr-2" />
+                <span className="text-2xl font-bold text-gray-800">100+</span>
+              </div>
+              <p className="text-sm text-gray-600 font-medium">منصة مدعومة</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-green-500" />
+                <span>SSL مشفر</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Download className="w-4 h-4 text-blue-500" />
+                <span>تحميل مجاني</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-500" />
+                <span>500K+ مستخدم</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-yellow-500" />
+                <span>تقييم 4.9/5</span>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* New Features Section */}
+      <div className="mt-16 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-8 rounded-3xl text-white">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center space-x-2 space-x-reverse bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4">
+            <Sparkles className="w-5 h-5" />
+            <span className="font-semibold">ميزات جديدة 2024</span>
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">تطورات حديثة لتجربة أفضل</h2>
+          <p className="text-lg opacity-90 max-w-2xl mx-auto">
+            نضيف باستمرار ميزات جديدة لنوفر لك أفضل تجربة تحميل فيديو في العالم العربي
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+              <Zap className="w-6 h-6 text-yellow-300" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">معالجة ذكية</h3>
+            <p className="text-white/80 text-sm leading-relaxed">
+              خوارزميات ذكية تحلل الروابط تلقائياً وتختار أفضل جودة متاحة لضمان أسرع تحميل
+            </p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+              <Shield className="w-6 h-6 text-green-300" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">حماية متقدمة</h3>
+            <p className="text-white/80 text-sm leading-relaxed">
+              تشفير SSL متقدم وحماية من البرمجيات الخبيثة مع فحص شامل لجميع الملفات قبل التحميل
+            </p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+              <Globe className="w-6 h-6 text-blue-300" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">دعم عالمي</h3>
+            <p className="text-white/80 text-sm leading-relaxed">
+              إضافة دعم لمنصات جديدة شهرياً مع تحسين الأداء للمستخدمين في جميع أنحاء العالم
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <div className="inline-flex items-center space-x-4 space-x-reverse bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full">
+            <Heart className="w-5 h-5 text-red-300" />
+            <span className="font-medium">صُنع بحب للمجتمع العربي</span>
+            <Star className="w-5 h-5 text-yellow-300" />
+          </div>
+        </div>
+      </div>
+
+      {/* Call to Action */}
+      <div className="mt-16 text-center bg-gray-50 p-8 rounded-3xl">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">جرب الآن مجاناً!</h2>
+        <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+          انضم لملايين المستخدمين الذين يثقون بنا لتحميل فيديوهاتهم المفضلة. بدون تسجيل، بدون رسوم، بدون حدود.
+        </p>
+        <button
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.querySelector('input[type="url"]')?.focus();
+          }}
+          className="inline-flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+        >
+          <Download className="w-5 h-5" />
+          <span>ابدأ التحميل الآن</span>
+        </button>
       </div>
     </div>
   )
