@@ -72,19 +72,22 @@ const TermsPage = () => {
 
   const importantNotices = [
     {
-      title: 'حقوق الطبع والنشر',
-      description: 'يجب على المستخدمين احترام حقوق الطبع والنشر واستخدام المحتوى المحمل للاستخدام الشخصي فقط.',
-      type: 'warning'
+      title: 'حقوق المؤلفين',
+      description: 'يجب احترام حقوق منشئي المحتوى. استخدم المحتوى للأغراض الشخصية والتعليمية فقط.',
+      type: 'warning',
+      icon: '⚖️'
     },
     {
-      title: 'القيود التقنية',
-      description: 'قد تكون هناك قيود على حجم الملفات أو عدد التحميلات لضمان جودة الخدمة للجميع.',
-      type: 'info'
+      title: 'قيود الاستخدام العادل',
+      description: 'نطبق حدوداً عادلة لضمان أفضل خدمة لجميع المستخدمين وحماية خوادمنا.',
+      type: 'info',
+      icon: '⚙️'
     },
     {
       title: 'المحتوى المحظور',
-      description: 'لا نسمح بتحميل محتوى غير قانوني أو مخالف للآداب أو يحتوي على عنف أو كراهية.',
-      type: 'danger'
+      description: 'ممنوع تحميل محتوى غير قانوني، مضايقات، أو يحتوي على عنف أو كراهية.',
+      type: 'danger',
+      icon: '⚠️'
     }
   ]
 
@@ -103,8 +106,10 @@ const TermsPage = () => {
             يرجى قراءة هذه الشروط والأحكام بعناية قبل استخدام خدمات VidCatch Pro. 
             استخدام الموقع يعني موافقتك على جميع الشروط المذكورة أدناه.
           </p>
-          <div className="mt-6 text-sm text-gray-500">
-            آخر تحديث: 27 أغسطس 2025
+          <div className="mt-6 inline-flex items-center space-x-2 space-x-reverse bg-gray-100 px-4 py-2 rounded-full text-sm text-gray-600">
+            <span>آخر تحديث: 29 أغسطس 2025</span>
+            <span>•</span>
+            <span>الإصدار 3.2</span>
           </div>
         </div>
 
@@ -113,20 +118,23 @@ const TermsPage = () => {
           {importantNotices.map((notice, index) => (
             <div 
               key={index} 
-              className={`p-6 rounded-xl border-2 ${
-                notice.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                notice.type === 'danger' ? 'bg-red-50 border-red-200' :
-                'bg-blue-50 border-blue-200'
+              className={`p-6 rounded-2xl border-2 hover:shadow-lg transition-all duration-300 ${
+                notice.type === 'warning' ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 hover:border-yellow-300' :
+                notice.type === 'danger' ? 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200 hover:border-red-300' :
+                'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:border-blue-300'
               }`}
             >
-              <h3 className={`font-bold mb-3 ${
-                notice.type === 'warning' ? 'text-yellow-800' :
-                notice.type === 'danger' ? 'text-red-800' :
-                'text-blue-800'
-              }`}>
-                {notice.title}
-              </h3>
-              <p className={`text-sm leading-relaxed ${
+              <div className="flex items-center space-x-3 space-x-reverse mb-3">
+                <span className="text-2xl">{notice.icon}</span>
+                <h3 className={`font-bold text-lg ${
+                  notice.type === 'warning' ? 'text-yellow-800' :
+                  notice.type === 'danger' ? 'text-red-800' :
+                  'text-blue-800'
+                }`}>
+                  {notice.title}
+                </h3>
+              </div>
+              <p className={`leading-relaxed ${
                 notice.type === 'warning' ? 'text-yellow-700' :
                 notice.type === 'danger' ? 'text-red-700' :
                 'text-blue-700'
@@ -167,23 +175,61 @@ const TermsPage = () => {
         </div>
 
         {/* DMCA Policy */}
-        <div className="card bg-gray-50 mt-12">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-            <Scale className="w-6 h-6" />
-            <span>سياسة DMCA</span>
-          </h3>
-          <div className="space-y-4 text-gray-600">
-            <p>
-              نلتزم بقانون الألفية للحقوق الرقمية (DMCA) ونستجيب بسرعة لإشعارات انتهاك حقوق الطبع والنشر المقدمة بشكل صحيح.
+        <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-3xl p-8 mt-12 border border-gray-200">
+          <div className="flex items-center space-x-4 space-x-reverse mb-6">
+            <div className="w-14 h-14 bg-blue-500 rounded-2xl flex items-center justify-center">
+              <Scale className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">سياسة DMCA</h3>
+              <p className="text-gray-600">حماية حقوق الملكية الفكرية</p>
+            </div>
+          </div>
+          
+          <div className="space-y-6 text-gray-700">
+            <p className="text-lg leading-relaxed">
+              نحن ملتزمون بقانون الألفية للحقوق الرقمية (DMCA) ونتعامل بجدية مع جميع البلاغات الصحيحة لانتهاك حقوق الطبع والنشر.
             </p>
-            <div className="bg-white p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">للإبلاغ عن انتهاك حقوق الطبع:</h4>
-              <ul className="space-y-2 text-sm">
-                <li>• أرسل إشعاراً مفصلاً إلى: dmca@vidcatch.pro</li>
-                <li>• اذكر المحتوى المنتهك مع روابط محددة</li>
-                <li>• قدم دليلاً على ملكيتك للمحتوى</li>
-                <li>• سنرد خلال 24-48 ساعة</li>
-              </ul>
+            
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center space-x-3 space-x-reverse mb-4">
+                <span className="text-2xl">📧</span>
+                <h4 className="font-bold text-gray-900 text-lg">خطوات الإبلاغ عن انتهاك</h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3 space-x-reverse">
+                    <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">1</div>
+                    <div>
+                      <p className="font-medium text-gray-900">أرسل إشعاراً مفصلاً</p>
+                      <p className="text-sm text-gray-600">dmca@vidcatch.pro</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 space-x-reverse">
+                    <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">2</div>
+                    <div>
+                      <p className="font-medium text-gray-900">حدد المحتوى المنتهك</p>
+                      <p className="text-sm text-gray-600">مع روابط محددة</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3 space-x-reverse">
+                    <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">3</div>
+                    <div>
+                      <p className="font-medium text-gray-900">قدم إثبات الملكية</p>
+                      <p className="text-sm text-gray-600">وثائق رسمية معتمدة</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 space-x-reverse">
+                    <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">✓</div>
+                    <div>
+                      <p className="font-medium text-gray-900">استجابة سريعة</p>
+                      <p className="text-sm text-gray-600">خلال 12-24 ساعة</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -213,24 +259,35 @@ const TermsPage = () => {
         </div>
 
         {/* Contact Information */}
-        <div className="card bg-primary-50 border-primary-200 mt-8">
-          <h3 className="text-xl font-bold text-primary-900 mb-4">اتصل بنا</h3>
-          <p className="text-primary-800 mb-6">
-            إذا كان لديك أي أسئلة حول شروط الاستخدام، يرجى عدم التردد في التواصل معنا.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <a 
-              href="mailto:legal@vidcatch.pro"
-              className="btn-primary"
-            >
-              راسل الفريق القانوني
-            </a>
-            <a 
-              href="/contact"
-              className="btn-secondary"
-            >
-              نموذج الاتصال
-            </a>
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-8 mt-8 text-white">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl">📞</span>
+            </div>
+            <h3 className="text-2xl font-bold mb-4">هل لديك أسئلة؟</h3>
+            <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
+              فريقنا القانوني موجود لمساعدتك في فهم شروط الاستخدام والإجابة عن جميع استفساراتك
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a 
+                href="mailto:legal@vidcatch.pro"
+                className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center space-x-2 space-x-reverse"
+              >
+                <span>⚖️</span>
+                <span>الفريق القانوني</span>
+              </a>
+              <a 
+                href="/about#contact"
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-8 py-3 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center space-x-2 space-x-reverse"
+              >
+                <span>💬</span>
+                <span>دردشة مباشرة</span>
+              </a>
+            </div>
+            
+            <div className="mt-8 pt-6 border-t border-white/20 text-sm opacity-75">
+              <p>نرد على جميع الاستفسارات القانونية خلال 24 ساعة عمل</p>
+            </div>
           </div>
         </div>
       </div>

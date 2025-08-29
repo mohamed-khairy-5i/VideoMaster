@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import VideoDownloader from '../components/VideoDownloader'
-import { Zap, Shield, Globe, Star, Users, TrendingUp } from 'lucide-react'
+import { Download, Shield, Globe, Star, Users, TrendingUp, Play, CheckCircle, Zap, Heart } from 'lucide-react'
 
 const HomePage = () => {
   const [stats, setStats] = useState({
-    totalDownloads: 2547836,
-    platformsSupported: 50,
-    usersActive: 125000
+    totalDownloads: 15847239,
+    platformsSupported: 85,
+    usersActive: 892341
   })
 
   // Animate stats on component mount
@@ -22,17 +22,17 @@ const HomePage = () => {
         const progress = step / steps
         
         setStats({
-          totalDownloads: Math.floor(2547836 * progress),
-          platformsSupported: Math.floor(50 * progress),
-          usersActive: Math.floor(125000 * progress)
+          totalDownloads: Math.floor(15847239 * progress),
+          platformsSupported: Math.floor(85 * progress),
+          usersActive: Math.floor(892341 * progress)
         })
 
         if (step >= steps) {
           clearInterval(interval)
           setStats({
-            totalDownloads: 2547836,
-            platformsSupported: 50,
-            usersActive: 125000
+            totalDownloads: 15847239,
+            platformsSupported: 85,
+            usersActive: 892341
           })
         }
       }, stepDuration)
@@ -46,51 +46,83 @@ const HomePage = () => {
 
   const features = [
     {
-      icon: Zap,
-      title: 'سرعة فائقة',
-      description: 'تحميل فوري بدون انتظار أو قوائم انتظار طويلة',
-      color: 'text-yellow-600 bg-yellow-100'
+      icon: Download,
+      title: 'تحميل بجودة 4K',
+      description: 'احصل على أعلى جودة متاحة من 144p حتى 4K مع دعم HDR',
+      color: 'text-purple-600 bg-purple-100'
     },
     {
       icon: Shield,
-      title: '100% آمن',
-      description: 'بدون برامج ضارة أو إعلانات مضللة، حماية كاملة لجهازك',
+      title: '100% آمن ومجاني',
+      description: 'بدون برامج ضارة أو رسوم خفية، حماية كاملة للخصوصية',
       color: 'text-green-600 bg-green-100'
     },
     {
-      icon: Globe,
-      title: '50+ منصة',
-      description: 'دعم شامل لجميع المنصات الشهيرة وأكثر من 50 موقع',
+      icon: Zap,
+      title: 'سرعة البرق',
+      description: 'تحميل فوري بتقنية التسريع المتطورة وخوادم CDN عالمية',
       color: 'text-blue-600 bg-blue-100'
+    },
+    {
+      icon: Globe,
+      title: '85+ منصة مدعومة',
+      description: 'يوتيوب، تيك توك، انستغرام، فيسبوك، تويتر وأكثر من 80 منصة أخرى',
+      color: 'text-orange-600 bg-orange-100'
+    },
+    {
+      icon: Play,
+      title: 'صوت منفصل MP3',
+      description: 'استخرج الصوت بجودة عالية بتنسيق MP3، AAC، أو FLAC',
+      color: 'text-pink-600 bg-pink-100'
+    },
+    {
+      icon: CheckCircle,
+      title: 'بدون تسجيل',
+      description: 'ابدأ التحميل فوراً بدون إنشاء حساب أو تقديم بيانات شخصية',
+      color: 'text-teal-600 bg-teal-100'
     }
   ]
 
   const testimonials = [
     {
-      name: 'أحمد محمد',
-      role: 'مصمم جرافيك',
-      content: 'أفضل موقع لتحميل الفيديوهات! سريع وسهل الاستخدام، وبدون إعلانات مزعجة.',
-      rating: 5
+      name: 'د. خالد الأحمدي',
+      role: 'أستاذ جامعي - جامعة الملك سعود',
+      content: 'أستخدم VidCatch Pro لحفظ المحاضرات التعليمية من يوتيوب. الجودة ممتازة والواجهة بسيطة جداً. ينصح به بشدة للأكاديميين.',
+      rating: 5,
+      avatar: '👨‍🏫'
     },
     {
-      name: 'سارة علي',
-      role: 'طالبة جامعية',
-      content: 'أستخدمه يومياً لتحميل المحاضرات من YouTube. جودة ممتازة وتحميل سريع.',
-      rating: 5
+      name: 'منى الزهراني',
+      role: 'منشئة محتوى - 250K متابع',
+      content: 'كمنشئة محتوى، أحتاج لحفظ فيديوهات المنافسين للدراسة. هذا الموقع يوفر عليّ ساعات من البحث عن أدوات معقدة.',
+      rating: 5,
+      avatar: '👩‍💼'
     },
     {
-      name: 'محمد العتيبي',
-      role: 'منشئ محتوى',
-      content: 'يدعم تيك توك وانستجرام بشكل ممتاز. أصبح أداتي المفضلة للعمل.',
-      rating: 5
+      name: 'فهد المطيري',
+      role: 'طالب طب - جامعة الملك عبدالعزيز',
+      content: 'المحاضرات الطبية على يوتيوب أصبحت في متناول يدي بفضل VidCatch Pro. يحمل حتى الفيديوهات الطويلة بسرعة مذهلة!',
+      rating: 5,
+      avatar: '👨‍⚕️'
+    },
+    {
+      name: 'نورا القحطاني',
+      role: 'مديرة تسويق رقمي',
+      content: 'أستخدمه لتحليل إعلانات المنافسين من فيسبوك وانستغرام. سهل الاستخدام ويدعم جميع المنصات التي أحتاجها في عملي.',
+      rating: 5,
+      avatar: '👩‍💻'
     }
   ]
 
   const popularPlatforms = [
-    { name: 'YouTube', users: '2.7B', color: 'bg-red-500' },
-    { name: 'TikTok', users: '1.7B', color: 'bg-black' },
-    { name: 'Instagram', users: '2.4B', color: 'bg-gradient-to-br from-purple-500 to-pink-500' },
-    { name: 'Facebook', users: '3.0B', color: 'bg-blue-600' }
+    { name: 'YouTube', users: '2.7B+', color: 'bg-red-500', icon: '🎬' },
+    { name: 'TikTok', users: '1.7B+', color: 'bg-black', icon: '🎵' },
+    { name: 'Instagram', users: '2.4B+', color: 'bg-gradient-to-br from-purple-500 to-pink-500', icon: '📸' },
+    { name: 'Facebook', users: '3.0B+', color: 'bg-blue-600', icon: '👥' },
+    { name: 'Twitter', users: '450M+', color: 'bg-blue-400', icon: '🐦' },
+    { name: 'Vimeo', users: '260M+', color: 'bg-teal-500', icon: '🎭' },
+    { name: 'Dailymotion', users: '112M+', color: 'bg-indigo-600', icon: '📺' },
+    { name: 'SoundCloud', users: '175M+', color: 'bg-orange-500', icon: '🎧' }
   ]
 
   return (
@@ -108,13 +140,14 @@ const HomePage = () => {
             </div>
             
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              حمل أي فيديو من{' '}
-              <span className="gradient-text">الإنترنت</span>{' '}
+              حمّل أي فيديو من{' '}
+              <span className="gradient-text bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">85+ منصة</span>{' '}
               مجاناً
             </h1>
             
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-              أسرع وأأمن موقع لتحميل الفيديوهات من YouTube، TikTok، Instagram، Facebook وأكثر من 50 منصة أخرى بجودة عالية ومجاناً 100%
+              الموقع العربي الأول لتحميل الفيديوهات بجودة 4K من يوتيوب، تيك توك، انستغرام، فيسبوك و 80+ منصة أخرى. 
+              <span className="font-semibold text-gray-800">سريع وآمن وبدون إعلانات مضللة!</span>
             </p>
           </div>
 
@@ -159,18 +192,18 @@ const HomePage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon
               return (
                 <div 
                   key={index}
-                  className="card text-center hover:scale-105 transition-transform duration-300"
+                  className="group card text-center hover:scale-105 hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-gray-300"
                 >
-                  <div className={`w-16 h-16 ${feature.color} rounded-xl flex items-center justify-center mx-auto mb-6`}>
+                  <div className={`w-16 h-16 ${feature.color} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                     <Icon className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors">{feature.title}</h3>
                   <p className="text-gray-600 leading-relaxed">{feature.description}</p>
                 </div>
               )
@@ -193,11 +226,11 @@ const HomePage = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {popularPlatforms.map((platform, index) => (
-              <div key={index} className="card text-center group hover:scale-105 transition-transform duration-300">
-                <div className={`w-16 h-16 ${platform.color} rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl group-hover:scale-110 transition-transform duration-200`}>
-                  {platform.name.charAt(0)}
+              <div key={index} className="card text-center group hover:scale-105 transition-all duration-300 hover:shadow-lg border border-gray-200 hover:border-gray-300">
+                <div className={`w-16 h-16 ${platform.color} rounded-2xl flex items-center justify-center mx-auto mb-4 text-white font-bold text-2xl group-hover:scale-110 transition-transform duration-200 shadow-md`}>
+                  {platform.icon}
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">{platform.name}</h3>
+                <h3 className="font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{platform.name}</h3>
                 <p className="text-sm text-gray-600">{platform.users} مستخدم</p>
               </div>
             ))}
@@ -217,27 +250,28 @@ const HomePage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="card">
-                <div className="flex items-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
+              <div key={index} className="card hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-gray-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                  <span className="text-2xl">{testimonial.avatar}</span>
                 </div>
                 
-                <p className="text-gray-600 mb-6 leading-relaxed">
+                <p className="text-gray-700 mb-6 leading-relaxed text-lg italic">
                   "{testimonial.content}"
                 </p>
                 
-                <div className="flex items-center space-x-3 space-x-reverse">
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium">
-                    {testimonial.name.charAt(0)}
-                  </div>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                   <div>
-                    <div className="font-medium text-gray-900">{testimonial.name}</div>
-                    <div className="text-sm text-gray-500">{testimonial.role}</div>
+                    <div className="font-bold text-gray-900 text-lg">{testimonial.name}</div>
+                    <div className="text-sm text-blue-600 font-medium">{testimonial.role}</div>
                   </div>
+                  <Heart className="w-6 h-6 text-red-500 opacity-70" />
                 </div>
               </div>
             ))}
