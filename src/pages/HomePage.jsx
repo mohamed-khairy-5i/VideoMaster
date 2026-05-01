@@ -263,7 +263,7 @@ const HomePage = () => {
                 </div>
                 
                 <p className="text-gray-700 mb-6 leading-relaxed text-lg italic">
-                  "{testimonial.content}"
+                  &quot;{testimonial.content}&quot;
                 </p>
                 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">

@@ -1,12 +1,11 @@
 module.exports = {
   apps: [{
     name: 'vidcatch-pro',
-    script: 'npm',
-    args: 'run dev',
-    cwd: '/home/user/webapp',
+    script: 'server.js',
+    cwd: process.cwd(),
     env: {
-      NODE_ENV: 'development',
-      PORT: 3000,
+      NODE_ENV: 'production',
+      PORT: process.env.PORT || 3000,
       HOST: '0.0.0.0'
     },
     watch: false,
@@ -16,6 +15,7 @@ module.exports = {
     error_file: './logs/err.log',
     out_file: './logs/out.log',
     log_file: './logs/combined.log',
-    time: true
+    time: true,
+    merge_logs: true
   }]
-}
+};
