@@ -1,117 +1,50 @@
+# Netlify configuration — tuned for the free tier.
+#
+# Architecture note: video bytes never touch a serverless function. Extraction is
+# a small JSON function; the actual file transfer runs through an edge function
+# that streams bytes without buffering. That is what keeps this inside the free
+# plan while still serving large files.
+
 [build]
   publish = "dist"
   command = "npm run build"
   functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "18"
-  NPM_VERSION = "9"
-  PYTHON_VERSION = "3.9"
+  NODE_VERSION = "20"
 
-# API redirects
-[[redirects]]
-  from = "/api/video/info"
-  to = "/.netlify/functions/video-info"
-  status = 200
+[functions]
+  node_bundler = "esbuild"
 
-[[redirects]]
-  from = "/api/video/download" 
-  to = "/.netlify/functions/video-download"
-  status = 200
+# Edge function: streaming download proxy (declared in-file via `config.path`,
+# repeated here so the routing is explicit and reviewable).
+[[edge_functions]]
+  path = "/api/stream"
+  function = "stream"
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-# SPA redirect for React Router
+# SPA fallback — must stay last so it never shadows the API routes.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Enhanced Security Headers
 [[headers]]
   for = "/*"
   [headers.values]
-    # Security Headers
     X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: blob:; font-src 'self' https:; connect-src 'self' https:; media-src 'self' https: blob:; object-src 'none'; base-uri 'self';"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-    Cross-Origin-Embedder-Policy = "unsafe-none"
-    Cross-Origin-Opener-Policy = "same-origin"
-    Cross-Origin-Resource-Policy = "cross-origin"
-    
-    # Performance Headers
-    Accept-CH = "DPR, Width, Viewport-Width"
-    Critical-CH = "DPR"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    # 'wasm-unsafe-eval' is required by ffmpeg.wasm (client-side muxing).
+    # blob:/data: in media-src are required to play locally-muxed output.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' blob: https:; media-src 'self' blob: data: https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 
-# Static Assets Caching - Long term caching with immutable
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-    Vary = "Accept-Encoding"
 
 [[headers]]
-  for = "*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-    Vary = "Accept-Encoding"
-
-[[headers]]
-  for = "*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-    Vary = "Accept-Encoding"
-
-# Images and Media
-[[headers]]
-  for = "*.{png,jpg,jpeg,gif,webp,avif,svg}"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-    Vary = "Accept-Encoding"
-
-# Fonts
-[[headers]]
-  for = "*.{woff,woff2,ttf,otf,eot}"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-    Access-Control-Allow-Origin = "*"
-
-# HTML files - shorter cache with revalidation
-[[headers]]
-  for = "*.html"
+  for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
-
-# Service Worker - no cache
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-
-# API Functions - no cache
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-
-# Preload critical resources for performance
-[[headers]]
-  for = "/"
-  [headers.values]
-    Link = "</assets/index.css>; rel=preload; as=style, </assets/index.js>; rel=preload; as=script"
-
-# Functions configuration
-[functions]
-  node_bundler = "esbuild"
-  
-[functions."video-info"]
-  node_bundler = "esbuild"
-
-[functions."video-download"] 
-  node_bundler = "esbuild"
