@@ -6,7 +6,6 @@ import AboutPage from './pages/AboutPage'
 import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
 import PlatformPage from './pages/PlatformPage'
-import ApiDocsPage from './pages/ApiDocsPage'
 
 function App() {
   return (
@@ -20,7 +19,6 @@ function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/platform/:platform" element={<PlatformPage />} />
-          <Route path="/api" element={<ApiDocsPage />} />
         </Routes>
       </main>
       

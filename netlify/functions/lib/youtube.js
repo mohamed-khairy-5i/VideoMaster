@@ -11,6 +11,8 @@
 //   The iOS/Android clients return plain `url` fields with no cipher, so we get
 //   playable links with zero JS execution. This is the whole trick.
 
+import { extractViaMirrors } from './fallback.js';
+
 const CLIENTS = {
   // Ordered by preference. IOS gives the best adaptive ladder (up to 4K),
   // ANDROID reliably returns a muxed 360p (video+audio in one file) which we use
@@ -187,6 +189,7 @@ export async function extractYouTube(url, { signal } = {}) {
   }
 
   const attempted = [];
+  const reasons = [];
   let lastReason = null;
 
   for (const key of ['IOS', 'ANDROID', 'TVHTML5']) {
@@ -196,16 +199,22 @@ export async function extractYouTube(url, { signal } = {}) {
     try {
       data = await callPlayer(client, videoId, signal);
     } catch (e) {
-      lastReason = e.message;
+      reasons.push(e.message);
       continue;
     }
 
     const status = data?.playabilityStatus?.status;
     if (status !== 'OK') {
-      lastReason =
-        data?.playabilityStatus?.reason ||
-        data?.playabilityStatus?.messages?.[0] ||
-        status;
+      // Keep the raw status too: the human-readable `reason` is often a generic
+      // "not supported on this device" string, while the status is what tells us
+      // the real cause (LOGIN_REQUIRED = bot check, UNPLAYABLE = private, ...).
+      reasons.push(
+        `${status}: ${
+          data?.playabilityStatus?.reason ||
+          data?.playabilityStatus?.messages?.[0] ||
+          'no reason given'
+        }`
+      );
       continue; // try the next client — TV often succeeds where iOS fails
     }
 
@@ -214,7 +223,7 @@ export async function extractYouTube(url, { signal } = {}) {
     const formats = normaliseFormats(data.streamingData, durationSec);
 
     if (!formats.muxed.length && !formats.videoOnly.length && !formats.audioOnly.length) {
-      lastReason = 'لم يتم إرجاع أي صيغة قابلة للتحميل';
+      reasons.push('OK but no downloadable format returned');
       continue;
     }
 
@@ -243,12 +252,46 @@ export async function extractYouTube(url, { signal } = {}) {
     };
   }
 
-  const err = new Error(
-    lastReason
-      ? `تعذّر استخراج الفيديو: ${lastReason}`
-      : 'تعذّر استخراج هذا الفيديو. قد يكون خاصًا أو محذوفًا.'
-  );
-  err.code = 'YOUTUBE_EXTRACTION_FAILED';
+  // Every direct client was refused. The usual cause is YouTube's bot check
+  // firing on our server's shared IP (LOGIN_REQUIRED), which no amount of
+  // request-shaping fixes. Public mirrors sit on different IPs, so try them
+  // before giving up.
+  try {
+    const viaMirror = await extractViaMirrors(videoId, { budgetMs: 5000 });
+    return { ...viaMirror, attempted: [...attempted, viaMirror.extractedVia] };
+  } catch (mirrorErr) {
+    reasons.push(`mirrors: ${mirrorErr.message}`);
+  }
+
+  // Classify against every reason we collected, not just the last one — the
+  // decisive signal usually comes from the first client, and later clients
+  // report a generic "no longer supported on this device" message that would
+  // otherwise mask it.
+  const allReasons = reasons.join(' | ');
+  lastReason = reasons[0] || null;
+  const botBlocked = /LOGIN_REQUIRED|Sign in|not a bot/i.test(allReasons);
+  const unavailable = /UNPLAYABLE|LIVE_STREAM_OFFLINE|private|removed|deleted/i.test(allReasons);
+  const ageGated = /AGE_VERIFICATION|age.?restrict/i.test(allReasons);
+  let message;
+  let code;
+  if (botBlocked) {
+    message =
+      'يوتيوب يطلب تأكيد أنك لست روبوتًا لهذا الفيديو حاليًا. جرّب فيديو آخر أو أعد المحاولة بعد قليل.';
+    code = 'YOUTUBE_BOT_CHECK';
+  } else if (ageGated) {
+    message = 'هذا الفيديو مقيّد بالعمر ولا يمكن تحميله بدون تسجيل دخول.';
+    code = 'YOUTUBE_AGE_RESTRICTED';
+  } else if (unavailable) {
+    message = 'هذا الفيديو غير متاح — قد يكون خاصًا أو محذوفًا.';
+    code = 'YOUTUBE_UNAVAILABLE';
+  } else {
+    message = 'تعذّر استخراج هذا الفيديو. تأكّد من الرابط وحاول مرة أخرى.';
+    code = 'YOUTUBE_EXTRACTION_FAILED';
+  }
+
+  const err = new Error(message);
+  err.code = code;
   err.attempted = attempted;
+  err.detail = allReasons; // surfaced in logs, never shown to the user
   throw err;
 }

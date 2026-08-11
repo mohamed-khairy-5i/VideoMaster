@@ -1,625 +1,397 @@
-import { useState, useCallback, useEffect } from 'react'
-import { Search, Download, AlertCircle, CheckCircle, Loader, Play, Volume2, Sparkles, Shield, Zap, Clock, Globe, Star, Users, TrendingUp, Award, Heart, Music, Video, Image, FileText, Monitor, Smartphone, Headphones, PlayCircle, FileVideo, FileAudio, X, Clipboard } from 'lucide-react'
-import { downloadVideo, getVideoInfo } from '../utils/api'
-import PlatformIcons from './PlatformIcons'
-import VideoPreview from './VideoPreview'
-import QualitySelector from './QualitySelector'
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Link2, Loader2, AlertCircle, Download, Music, Video, Clipboard,
+  X, Eye, Clock, CheckCircle2, ShieldCheck, Cpu, Zap,
+} from 'lucide-react';
+import {
+  extractVideo, buildDownloadOptions, saveDirect, formatDuration,
+  formatBytes, formatCount, detectPlatform, looksLikeUrl, APIError,
+} from '../utils/api';
+import { muxVideoAudio, saveBlob, canMuxSafely } from '../utils/muxer';
 
-const VideoDownloader = () => {
-  const [url, setUrl] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [videoInfo, setVideoInfo] = useState(null)
-  const [error, setError] = useState('')
-  const [downloadProgress, setDownloadProgress] = useState(null)
-  const [downloadMessage, setDownloadMessage] = useState('')
+const PLATFORM_LABEL = {
+  youtube: 'YouTube', tiktok: 'TikTok', vimeo: 'Vimeo',
+  reddit: 'Reddit', twitter: 'Twitter / X', dailymotion: 'Dailymotion',
+};
 
-  const supportedPlatforms = [
-    { name: 'YouTube', key: 'youtube', color: 'bg-red-500', textColor: 'text-red-600', IconComponent: PlayCircle },
-    { name: 'TikTok', key: 'tiktok', color: 'bg-black', textColor: 'text-gray-900', IconComponent: Music },
-    { name: 'Instagram', key: 'instagram', color: 'bg-gradient-to-br from-purple-500 to-pink-500', textColor: 'text-purple-600', IconComponent: Image },
-    { name: 'Facebook', key: 'facebook', color: 'bg-blue-600', textColor: 'text-blue-600', IconComponent: Users },
-    { name: 'Twitter', key: 'twitter', color: 'bg-sky-500', textColor: 'text-sky-600', IconComponent: Globe },
-    { name: 'Vimeo', key: 'vimeo', color: 'bg-blue-500', textColor: 'text-blue-600', IconComponent: Video },
-    { name: 'Dailymotion', key: 'dailymotion', color: 'bg-orange-500', textColor: 'text-orange-600', IconComponent: Monitor },
-    { name: 'SoundCloud', key: 'soundcloud', color: 'bg-orange-400', textColor: 'text-orange-600', IconComponent: Headphones },
-    { name: 'Reddit', key: 'reddit', color: 'bg-orange-600', textColor: 'text-orange-600', IconComponent: FileText },
-    { name: 'LinkedIn', key: 'linkedin', color: 'bg-blue-700', textColor: 'text-blue-700', IconComponent: Users },
-    { name: 'Pinterest', key: 'pinterest', color: 'bg-red-600', textColor: 'text-red-600', IconComponent: Image },
-    { name: 'Snapchat', key: 'snapchat', color: 'bg-yellow-400', textColor: 'text-yellow-600', IconComponent: Smartphone },
-    { name: 'Twitch', key: 'twitch', color: 'bg-purple-600', textColor: 'text-purple-600', IconComponent: Video },
-    { name: 'Bilibili', key: 'bilibili', color: 'bg-pink-500', textColor: 'text-pink-600', IconComponent: PlayCircle },
-    { name: 'Weibo', key: 'weibo', color: 'bg-red-400', textColor: 'text-red-600', IconComponent: Globe },
-    { name: 'VK', key: 'vk', color: 'bg-blue-800', textColor: 'text-blue-800', IconComponent: Users }
-  ]
+export default function VideoDownloader() {
+  const [url, setUrl] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | loading | ready | error
+  const [info, setInfo] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [error, setError] = useState(null);
+  const [job, setJob] = useState(null); // { id, progress, message }
+  const abortRef = useRef(null);
+  const inputRef = useRef(null);
 
-  const handleUrlChange = (e) => {
-    const newUrl = e.target.value
-    setUrl(newUrl)
-    setError('')
-    setVideoInfo(null)
-  }
+  const platformGuess = detectPlatform(url);
 
-  const detectPlatform = (url) => {
-    // تنظيف وتطبيع الرابط
-    const cleanUrl = url.toLowerCase().trim()
-    
-    const patterns = {
-      youtube: /(youtube\.com|youtu\.be|youtube-nocookie\.com|m\.youtube\.com|gaming\.youtube\.com)/i,
-      tiktok: /(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com|m\.tiktok\.com)/i,
-      instagram: /(instagram\.com|instagr\.am)/i,
-      facebook: /(facebook\.com|fb\.watch|fb\.me|m\.facebook\.com|web\.facebook\.com|business\.facebook\.com)/i,
-      twitter: /(twitter\.com|x\.com|t\.co|mobile\.twitter\.com)/i,
-      vimeo: /(vimeo\.com|player\.vimeo\.com)/i,
-      dailymotion: /(dailymotion\.com|dai\.ly)/i,
-      twitch: /(twitch\.tv|clips\.twitch\.tv|m\.twitch\.tv)/i,
-      reddit: /(reddit\.com|redd\.it|v\.redd\.it|old\.reddit\.com|new\.reddit\.com|m\.reddit\.com)/i,
-      soundcloud: /(soundcloud\.com|snd\.sc|m\.soundcloud\.com)/i,
-      linkedin: /(linkedin\.com|lnkd\.in)/i,
-      pinterest: /(pinterest\.com|pin\.it)/i,
-      snapchat: /(snapchat\.com|story\.snapchat\.com)/i,
-      bilibili: /(bilibili\.com|b23\.tv)/i,
-      weibo: /(weibo\.com|weibo\.cn|t\.cn)/i,
-      vk: /(vk\.com|vk\.ru)/i,
-      ok: /(ok\.ru|odnoklassniki\.ru)/i,
-      rutube: /rutube\.ru/i,
-      yandex: /yandex\.ru/i
-    }
-    
-    for (const [platform, pattern] of Object.entries(patterns)) {
-      if (pattern.test(cleanUrl)) return platform
-    }
-    return 'unknown'
-  }
+  useEffect(() => () => abortRef.current?.abort(), []);
 
-  const validateUrl = (url) => {
+  const analyse = useCallback(
+    async (rawUrl) => {
+      const target = rawUrl ?? url;
+      if (!looksLikeUrl(target)) {
+        setError({ message: 'الرجاء لصق رابط فيديو صالح', code: 'INVALID_URL' });
+        setStatus('error');
+        return;
+      }
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setStatus('loading');
+      setError(null);
+      setInfo(null);
+      setOptions([]);
+
+      try {
+        const data = await extractVideo(target, { signal: controller.signal });
+        setInfo(data);
+        setOptions(buildDownloadOptions(data));
+        setStatus('ready');
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        setError({
+          message: e.message || 'تعذّر تحليل الفيديو',
+          code: e instanceof APIError ? e.code : 'UNKNOWN',
+        });
+        setStatus('error');
+      }
+    },
+    [url]
+  );
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    analyse();
+  };
+
+  const pasteFromClipboard = async () => {
     try {
-      // تنظيف الرابط من المسافات والأحرف الغريبة
-      const cleanUrl = url.trim().replace(/[\u200B-\u200D\uFEFF]/g, '')
-      
-      // إضافة http إذا لم يكن موجود
-      const urlWithProtocol = cleanUrl.startsWith('http') ? cleanUrl : 'https://' + cleanUrl
-      
-      const urlObj = new URL(urlWithProtocol)
-      
-      // التحقق من أن البروتوكول صحيح
-      if (!['http:', 'https:'].includes(urlObj.protocol)) {
-        return false
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setUrl(text);
+        analyse(text);
       }
-      
-      // التحقق من وجود domain صحيح
-      if (!urlObj.hostname || urlObj.hostname.length < 3) {
-        return false
-      }
-      
-      return true
     } catch {
-      return false
+      inputRef.current?.focus(); // clipboard blocked — let the user paste manually
     }
-  }
+  };
 
-  const handleGetInfo = async () => {
-    if (!url.trim()) {
-      setError('الرجاء إدخال رابط الفيديو')
-      return
+  const reset = () => {
+    abortRef.current?.abort();
+    setUrl('');
+    setInfo(null);
+    setOptions([]);
+    setError(null);
+    setJob(null);
+    setStatus('idle');
+    inputRef.current?.focus();
+  };
+
+  /** Instant options download straight through the proxy; merged ones run locally. */
+  const handleDownload = async (opt) => {
+    if (opt.instant) {
+      saveDirect(opt.downloadUrl);
+      return;
     }
 
-    if (!validateUrl(url)) {
-      setError('الرابط غير صحيح. تأكد من إدخال رابط صالح')
-      return
+    if (!canMuxSafely(opt.filesize)) {
+      setJob({
+        id: opt.id,
+        progress: 0,
+        message: 'هذا الملف كبير جدًا للدمج على هذا الجهاز. اختر جودة أقل أو استخدم حاسوبًا.',
+        failed: true,
+      });
+      return;
     }
 
-    const platform = detectPlatform(url)
-    if (platform === 'unknown') {
-      setError('هذه المنصة غير مدعومة حالياً. نحن ندعم YouTube، TikTok، Instagram ومنصات أخرى شهيرة.')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-    setVideoInfo(null) // Clear previous results
-
+    setJob({ id: opt.id, progress: 0, message: 'جاري التحضير…' });
     try {
-      const info = await getVideoInfo(url)
-      setVideoInfo(info)
-      
-      // Show success message briefly
-      const successMsg = `تم تحليل الفيديو من ${platform.toUpperCase()} بنجاح`
-      setError('')
-      
-    } catch (err) {
-      console.error('Video info error:', err)
-      
-      // Enhanced error handling with specific messages
-      let errorMessage = 'حدث خطأ أثناء تحليل الفيديو'
-      
-      if (err.code === 'RATE_LIMIT_EXCEEDED') {
-        errorMessage = 'تم تجاوز الحد المسموح من الطلبات. انتظر قليلاً قبل المحاولة مرة أخرى.'
-      } else if (err.code === 'VIDEO_UNAVAILABLE') {
-        errorMessage = 'الفيديو غير متاح أو محذوف أو خاص. تأكد من صحة الرابط.'
-      } else if (err.code === 'NETWORK_ERROR') {
-        errorMessage = 'مشكلة في الاتصال. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.'
-      } else if (err.message) {
-        errorMessage = err.message
-      }
-      
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
+      const blob = await muxVideoAudio({
+        videoUrl: opt.videoUrl,
+        audioUrl: opt.audioUrl,
+        onProgress: (p) => setJob((j) => (j?.id === opt.id ? { ...j, progress: Math.round(p) } : j)),
+        onStatus: (m) => setJob((j) => (j?.id === opt.id ? { ...j, message: m } : j)),
+      });
+      const name = `${(info.title || 'video').replace(/[\\/:*?"<>|]/g, '')}_${opt.label}.mp4`;
+      saveBlob(blob, name);
+      setJob({ id: opt.id, progress: 100, message: 'تم الحفظ ✅', done: true });
+      setTimeout(() => setJob((j) => (j?.id === opt.id ? null : j)), 4000);
+    } catch (e) {
+      setJob({ id: opt.id, progress: 0, message: e.message || 'فشل الدمج', failed: true });
     }
-  }
+  };
 
-  const handleDownload = async (format) => {
-    if (!videoInfo) return
-
-    setDownloadProgress({ format, progress: 0, status: 'preparing' })
-    setDownloadMessage('جاري التحضير...')
-    setError('')
-
-    try {
-      await downloadVideo(url, format, (progress, message) => {
-        setDownloadProgress(prev => ({ 
-          ...prev, 
-          progress, 
-          status: progress < 100 ? 'downloading' : 'completed' 
-        }))
-        setDownloadMessage(message || 'جاري التحميل...')
-      })
-      
-      setDownloadProgress(prev => ({ ...prev, progress: 100, status: 'completed' }))
-      setDownloadMessage('تم التحميل بنجاح! تحقق من مجلد التحميلات')
-      
-      // Reset after 5 seconds
-      setTimeout(() => {
-        setDownloadProgress(null)
-        setDownloadMessage('')
-      }, 5000)
-    } catch (err) {
-      console.error('Download error:', err)
-      const errorMessage = err.message || 'حدث خطأ أثناء تحميل الفيديو'
-      setError(errorMessage)
-      setDownloadProgress(null)
-      setDownloadMessage('')
-    }
-  }
-
-  const handlePlatformClick = (platform) => {
-    const exampleUrls = {
-      youtube: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      tiktok: 'https://www.tiktok.com/@username/video/7234567890123456789',
-      instagram: 'https://www.instagram.com/reel/CvXyZ123456/',
-      facebook: 'https://www.facebook.com/watch/?v=123456789012345',
-      twitter: 'https://twitter.com/username/status/1234567890123456789',
-      vimeo: 'https://vimeo.com/123456789',
-      dailymotion: 'https://www.dailymotion.com/video/x7abcdef',
-      soundcloud: 'https://soundcloud.com/artist/amazing-track-2024',
-      reddit: 'https://www.reddit.com/r/videos/comments/abc123/amazing_video_title/',
-      linkedin: 'https://www.linkedin.com/posts/username_video-activity-1234567890',
-      pinterest: 'https://www.pinterest.com/pin/123456789012345678/',
-      snapchat: 'https://story.snapchat.com/p/abc123def456ghi789',
-      twitch: 'https://www.twitch.tv/videos/123456789',
-      bilibili: 'https://www.bilibili.com/video/BV1xx411c7XZ',
-      weibo: 'https://weibo.com/tv/show/1034:abc123def456',
-      vk: 'https://vk.com/video123456_789012345'
-    }
-    
-    setUrl(exampleUrls[platform.key] || '')
-  }
+  const videoOptions = options.filter((o) => o.kind === 'video');
+  const audioOptions = options.filter((o) => o.kind === 'audio');
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Main Input Section */}
-      <div className="card mb-8">
-        <div className="text-center mb-8 relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-3xl -z-10"></div>
-          <div className="p-8">
-            <div className="flex justify-center mb-4">
-              <div className="inline-flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium animate-pulse">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span>أكثر من 15 مليون فيديو تم تحميله بنجاح</span>
-              </div>
-            </div>
-            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
-              محمل الفيديو{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">الاحترافي</span>
-            </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              تقنية متطورة لتحميل الفيديوهات من 100+ منصة بجودة تصل إلى 8K
-              <br/>
-              <span className="text-lg font-semibold text-gray-800 mt-2 block flex items-center justify-center gap-2">
-                <Shield className="w-5 h-5 text-green-600" />
-                <span>آمن بنسبة 100%</span>
-                <Zap className="w-5 h-5 text-blue-600" />
-                <span>سريع كالبرق</span>
-                <Heart className="w-5 h-5 text-red-500" />
-                <span>مجاني بالكامل</span>
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {/* Enhanced Input Section with Quick Actions */}
-        <div className="space-y-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <input
-                type="url"
-                value={url}
-                onChange={handleUrlChange}
-                placeholder="الصق رابط الفيديو هنا... (مثال: https://www.youtube.com/watch?v=...)"
-                className={`input-field pr-12 ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
-                dir="ltr"
-              />
-              {url && (
-                <button
-                  onClick={() => setUrl('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={handleGetInfo}
-                disabled={loading || !url.trim()}
-                className="btn-primary flex items-center justify-center space-x-2 space-x-reverse min-w-[140px]"
-              >
-                {loading ? (
-                  <>
-                    <Loader className="w-5 h-5 animate-spin" />
-                    <span>جاري التحليل...</span>
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-5 h-5" />
-                    <span>تحليل الرابط</span>
-                  </>
-                )}
-              </button>
-              
-              {/* Quick Paste Button */}
-              <button
-                onClick={async () => {
-                  try {
-                    const text = await navigator.clipboard.readText();
-                    if (text) {
-                      setUrl(text);
-                      setError('');
-                    }
-                  } catch (err) {
-                    console.warn('Could not read clipboard:', err);
-                  }
-                }}
-                className="btn-secondary flex items-center justify-center px-3"
-                title="لصق من الحافظة"
-              >
-                <Clipboard className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          
-          {error && (
-            <div className="flex items-center space-x-2 space-x-reverse p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-          
-          {/* Quick URL Examples */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            <span className="text-sm text-gray-500">روابط سريعة للتجربة:</span>
-            <button
-              onClick={() => setUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}
-              className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200 transition-colors"
-            >
-              YouTube
-            </button>
-            <button
-              onClick={() => setUrl('https://www.tiktok.com/@username/video/123456789')}
-              className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-            >
-              TikTok
-            </button>
-            <button
-              onClick={() => setUrl('https://www.instagram.com/reel/example123/')}
-              className="text-xs bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 px-2 py-1 rounded hover:from-purple-200 hover:to-pink-200 transition-colors"
-            >
-              Instagram
-            </button>
-          </div>
-        </div>
-
-        {/* Enhanced Supported Platforms */}
-        <div className="bg-gradient-to-br from-gray-50 to-blue-50 p-6 rounded-2xl border border-gray-100">
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center mb-3 gap-2">
-              <Shield className="w-5 h-5 text-green-600" />
-              <Star className="w-5 h-5 text-yellow-500" />
-              <p className="text-gray-700 font-semibold">100+ منصة مدعومة</p>
-              <Award className="w-5 h-5 text-blue-600" />
-              <TrendingUp className="w-5 h-5 text-green-500" />
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>خالي من الإعلانات المضللة</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Shield className="w-4 h-4 text-blue-500" />
-                <span>بدون برامج ضارة</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                <span>سرعة فائقة</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-12 gap-3 max-w-5xl mx-auto">
-            {supportedPlatforms.map((platform) => (
-              <button
-                key={platform.key}
-                onClick={() => handlePlatformClick(platform)}
-                className="group relative p-4 bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-200 hover:border-blue-300 transition-all duration-300 hover:scale-105 hover:-translate-y-1"
-                title={`تجربة ${platform.name}`}
-              >
-                <div className="mb-2 flex justify-center">
-                  <platform.IconComponent className="w-7 h-7 text-gray-600 group-hover:text-blue-600 transition-colors" />
-                </div>
-                <div className="text-xs font-medium text-gray-600 group-hover:text-gray-800 truncate">{platform.name}</div>
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/10 group-hover:to-purple-500/10 rounded-xl transition-all duration-300"></div>
-              </button>
-            ))}
-          </div>
-          
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500 mb-2">انقر على أي منصة لتجربة رابط تجريبي</p>
-            <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-              <span>✨ أحدث التقنيات</span>
-              <span>🔒 أمان كامل</span>
-              <span>⚡ سرعة عالية</span>
-              <span>🆓 مجاني تماماً</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Video Preview & Download Options */}
-      {videoInfo && (
-        <div className="space-y-6 animate-fade-in">
-          <VideoPreview videoInfo={videoInfo} />
-          <QualitySelector 
-            videoInfo={videoInfo}
-            onDownload={handleDownload}
-            downloadProgress={downloadProgress}
+    <section className="w-full max-w-3xl mx-auto px-4" id="downloader">
+      {/* ---------------------------------------------------------- input */}
+      <form onSubmit={onSubmit} className="relative">
+        <div
+          className={`flex items-center gap-2 rounded-2xl border-2 bg-white p-2 shadow-lg transition
+            ${status === 'error' ? 'border-red-300' : 'border-slate-200 focus-within:border-blue-500'}`}
+        >
+          <Link2 className="ms-2 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="url"
+            dir="ltr"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="الصق رابط الفيديو هنا…"
+            aria-label="رابط الفيديو"
+            className="min-w-0 flex-1 bg-transparent py-3 text-start text-slate-800 outline-none placeholder:text-slate-400"
           />
-        </div>
-      )}
 
-      {/* Download Progress */}
-      {downloadProgress && (
-        <div className="card animate-slide-up">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3 space-x-reverse">
-              <div className="p-2 bg-primary-100 rounded-lg">
-                <Download className="w-5 h-5 text-primary-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  {downloadProgress.status === 'completed' ? 'تم التحميل!' : 'جاري التحميل...'}
-                </h3>
-                <p className="text-sm text-gray-600">تنسيق: {downloadProgress.format}</p>
-                {downloadMessage && (
-                  <p className="text-xs text-blue-600 mt-1">{downloadMessage}</p>
-                )}
-              </div>
-            </div>
-            
-            {downloadProgress.status === 'completed' ? (
-              <div className="flex items-center space-x-2 space-x-reverse text-success-600">
-                <CheckCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">مكتمل!</span>
-              </div>
+          {url ? (
+            <button
+              type="button"
+              onClick={reset}
+              aria-label="مسح"
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={pasteFromClipboard}
+              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-100 sm:flex"
+            >
+              <Clipboard className="h-4 w-4" />
+              لصق
+            </button>
+          )}
+
+          <button
+            type="submit"
+            disabled={status === 'loading' || !url}
+            className="flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition
+                       hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {status === 'loading' ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="hidden sm:inline">جاري التحليل</span>
+              </>
             ) : (
-              <div className="text-sm font-medium text-primary-600">
-                {downloadProgress.progress}%
-              </div>
+              <>
+                <Download className="h-4 w-4" />
+                <span>تحليل</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {platformGuess && status === 'idle' && (
+          <p className="mt-2 flex items-center gap-1.5 text-sm text-emerald-600">
+            <CheckCircle2 className="h-4 w-4" />
+            تم التعرّف على {PLATFORM_LABEL[platformGuess]}
+          </p>
+        )}
+      </form>
+
+      {/* ---------------------------------------------------------- error */}
+      {status === 'error' && error && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+          <div className="min-w-0">
+            <p className="font-medium text-red-800">{error.message}</p>
+            {error.code === 'UNSUPPORTED_PLATFORM' && (
+              <p className="mt-1 text-sm text-red-600">
+                المنصات المدعومة: {Object.values(PLATFORM_LABEL).join(' · ')}
+              </p>
             )}
           </div>
-          
-          <div className="progress-bar">
-            <div 
-              className="progress-fill"
-              style={{ width: `${downloadProgress.progress}%` }}
-            />
-          </div>
-          
-          {downloadMessage && (
-            <p className="text-sm text-center mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
-              <span className="text-blue-800 font-medium">{downloadMessage}</span>
-            </p>
-          )}
         </div>
       )}
 
-      {/* Enhanced Features Section */}
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-3xl mt-12">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">لماذا نحن الأفضل؟</h2>
-          <p className="text-gray-600 text-lg">ميزات متطورة لا تجدها في أي مكان آخر</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 text-center group">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <Zap className="w-7 h-7 text-white" />
-            </div>
-            <h3 className="font-bold text-gray-900 mb-2">سرعة البرق</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">تحميل فوري بتقنية CDN المتطورة</p>
-            <div className="text-xs text-blue-600 font-medium mt-2">&lt; 3 ثوانٍ</div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 text-center group">
-            <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <Shield className="w-7 h-7 text-white" />
-            </div>
-            <h3 className="font-bold text-gray-900 mb-2">أمان مطلق</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">بدون برامج ضارة أو تتبع</p>
-            <div className="text-xs text-green-600 font-medium mt-2">SSL مشفر</div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 text-center group">
-            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <Play className="w-7 h-7 text-white" />
-            </div>
-            <h3 className="font-bold text-gray-900 mb-2">جودة 4K</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">أعلى جودة متاحة من المصدر</p>
-            <div className="text-xs text-purple-600 font-medium mt-2">حتى 8K</div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 text-center group">
-            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <Volume2 className="w-7 h-7 text-white" />
-            </div>
-            <h3 className="font-bold text-gray-900 mb-2">صوت نقي</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">استخراج صوت بجودة استوديو</p>
-            <div className="text-xs text-orange-600 font-medium mt-2">MP3/FLAC</div>
-          </div>
-        </div>
-        
-        {/* Enhanced Statistics */}
-        <div className="mt-8 p-6 bg-white/90 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div className="space-y-2">
-              <div className="flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-500 mr-2" />
-                <span className="text-2xl font-bold text-gray-800">15M+</span>
-              </div>
-              <p className="text-sm text-gray-600 font-medium">تحميل ناجح</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-500 mr-2" />
-                <span className="text-2xl font-bold text-gray-800">24/7</span>
-              </div>
-              <p className="text-sm text-gray-600 font-medium">متوفر دائماً</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-center">
-                <Zap className="w-6 h-6 text-yellow-500 mr-2" />
-                <span className="text-2xl font-bold text-gray-800">&lt; 3s</span>
-              </div>
-              <p className="text-sm text-gray-600 font-medium">سرعة المعالجة</p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-center">
-                <Globe className="w-6 h-6 text-purple-500 mr-2" />
-                <span className="text-2xl font-bold text-gray-800">100+</span>
-              </div>
-              <p className="text-sm text-gray-600 font-medium">منصة مدعومة</p>
-            </div>
-          </div>
-          
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-green-500" />
-                <span>SSL مشفر</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Download className="w-4 h-4 text-blue-500" />
-                <span>تحميل مجاني</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-purple-500" />
-                <span>500K+ مستخدم</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-yellow-500" />
-                <span>تقييم 4.9/5</span>
-              </div>
+      {/* ------------------------------------------------------- skeleton */}
+      {status === 'loading' && (
+        <div className="mt-6 animate-pulse rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex gap-4">
+            <div className="h-24 w-40 shrink-0 rounded-lg bg-slate-200" />
+            <div className="flex-1 space-y-3 py-1">
+              <div className="h-4 w-3/4 rounded bg-slate-200" />
+              <div className="h-3 w-1/2 rounded bg-slate-200" />
+              <div className="h-3 w-1/3 rounded bg-slate-200" />
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* New Features Section */}
-      <div className="mt-16 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-8 rounded-3xl text-white">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 space-x-reverse bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4">
-            <Sparkles className="w-5 h-5" />
-            <span className="font-semibold">ميزات جديدة 2024</span>
+      {/* ---------------------------------------------------------- result */}
+      {status === 'ready' && info && (
+        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {/* real metadata straight from the platform */}
+          <div className="flex flex-col gap-4 border-b border-slate-100 p-4 sm:flex-row">
+            {info.thumbnail && (
+              <img
+                src={info.thumbnail}
+                alt=""
+                loading="lazy"
+                className="h-auto w-full shrink-0 rounded-lg bg-slate-100 object-cover sm:h-24 sm:w-40"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <h3 className="line-clamp-2 font-semibold leading-snug text-slate-900">
+                {info.title}
+              </h3>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+                {info.author && <span className="truncate">{info.author}</span>}
+                {info.duration != null && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {formatDuration(info.duration)}
+                  </span>
+                )}
+                {info.viewCount != null && (
+                  <span className="flex items-center gap-1">
+                    <Eye className="h-3.5 w-3.5" />
+                    {formatCount(info.viewCount)}
+                  </span>
+                )}
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                  {PLATFORM_LABEL[info.platform] || info.platform}
+                </span>
+              </div>
+            </div>
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">تطورات حديثة لتجربة أفضل</h2>
-          <p className="text-lg opacity-90 max-w-2xl mx-auto">
-            نضيف باستمرار ميزات جديدة لنوفر لك أفضل تجربة تحميل فيديو في العالم العربي
+
+          {info.notice && (
+            <p className="border-b border-amber-100 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+              {info.notice}
+            </p>
+          )}
+
+          {!options.length && (
+            <p className="p-4 text-sm text-slate-500">
+              لم نجد صيغة قابلة للتحميل لهذا الفيديو.
+            </p>
+          )}
+
+          {/* download choices */}
+          <div className="divide-y divide-slate-100">
+            {videoOptions.length > 0 && (
+              <FormatGroup
+                icon={<Video className="h-4 w-4" />}
+                title="فيديو"
+                options={videoOptions}
+                job={job}
+                onDownload={handleDownload}
+              />
+            )}
+            {audioOptions.length > 0 && (
+              <FormatGroup
+                icon={<Music className="h-4 w-4" />}
+                title="صوت فقط"
+                options={audioOptions}
+                job={job}
+                onDownload={handleDownload}
+              />
+            )}
+          </div>
+
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+            <span className="flex items-center gap-1">
+              <ShieldCheck className="h-3.5 w-3.5" /> لا نحتفظ بأي ملف
+            </span>
+            <span className="flex items-center gap-1">
+              <Cpu className="h-3.5 w-3.5" /> الدمج يتم داخل متصفحك
+            </span>
+            <span className="flex items-center gap-1">
+              <Zap className="h-3.5 w-3.5" /> بدون إعلانات
+            </span>
           </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-              <Zap className="w-6 h-6 text-yellow-300" />
-            </div>
-            <h3 className="text-xl font-bold mb-2">معالجة ذكية</h3>
-            <p className="text-white/80 text-sm leading-relaxed">
-              خوارزميات ذكية تحلل الروابط تلقائياً وتختار أفضل جودة متاحة لضمان أسرع تحميل
-            </p>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-              <Shield className="w-6 h-6 text-green-300" />
-            </div>
-            <h3 className="text-xl font-bold mb-2">حماية متقدمة</h3>
-            <p className="text-white/80 text-sm leading-relaxed">
-              تشفير SSL متقدم وحماية من البرمجيات الخبيثة مع فحص شامل لجميع الملفات قبل التحميل
-            </p>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-              <Globe className="w-6 h-6 text-blue-300" />
-            </div>
-            <h3 className="text-xl font-bold mb-2">دعم عالمي</h3>
-            <p className="text-white/80 text-sm leading-relaxed">
-              إضافة دعم لمنصات جديدة شهرياً مع تحسين الأداء للمستخدمين في جميع أنحاء العالم
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center">
-          <div className="inline-flex items-center space-x-4 space-x-reverse bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full">
-            <Heart className="w-5 h-5 text-red-300" />
-            <span className="font-medium">صُنع بحب للمجتمع العربي</span>
-            <Star className="w-5 h-5 text-yellow-300" />
-          </div>
-        </div>
-      </div>
-
-      {/* Call to Action */}
-      <div className="mt-16 text-center bg-gray-50 p-8 rounded-3xl">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">جرب الآن مجاناً!</h2>
-        <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-          انضم لملايين المستخدمين الذين يثقون بنا لتحميل فيديوهاتهم المفضلة. بدون تسجيل، بدون رسوم، بدون حدود.
-        </p>
-        <button
-          onClick={() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            document.querySelector('input[type="url"]')?.focus();
-          }}
-          className="inline-flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-        >
-          <Download className="w-5 h-5" />
-          <span>ابدأ التحميل الآن</span>
-        </button>
-      </div>
-    </div>
-  )
+      )}
+    </section>
+  );
 }
 
-export default VideoDownloader
+function FormatGroup({ icon, title, options, job, onDownload }) {
+  return (
+    <div className="p-4">
+      <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
+        {icon}
+        {title}
+      </h4>
+      <ul className="space-y-2">
+        {options.map((opt) => {
+          const active = job?.id === opt.id;
+          return (
+            <li key={opt.id}>
+              <button
+                onClick={() => onDownload(opt)}
+                disabled={active && !job.failed && !job.done}
+                className="group flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-start
+                           transition hover:border-blue-400 hover:bg-blue-50/50 disabled:cursor-wait"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-slate-900">{opt.label}</span>
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase text-slate-500">
+                      {opt.ext}
+                    </span>
+                    {opt.fps > 30 && (
+                      <span className="rounded bg-violet-100 px-1.5 py-0.5 text-xs text-violet-700">
+                        {opt.fps}fps
+                      </span>
+                    )}
+                    {opt.noWatermark && (
+                      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-700">
+                        بدون علامة
+                      </span>
+                    )}
+                    {opt.needsMux && (
+                      <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+                        دمج محلي
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {opt.filesize ? `${formatBytes(opt.filesize)} · ` : ''}
+                    {opt.note}
+                  </p>
+
+                  {active && (
+                    <div className="mt-2">
+                      {!job.failed && !job.done && (
+                        <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className="h-full rounded-full bg-blue-600 transition-all duration-300"
+                            style={{ width: `${job.progress}%` }}
+                          />
+                        </div>
+                      )}
+                      <p
+                        className={`mt-1 text-xs ${
+                          job.failed ? 'text-red-600' : job.done ? 'text-emerald-600' : 'text-blue-600'
+                        }`}
+                      >
+                        {job.message}
+                        {!job.failed && !job.done ? ` · ${job.progress}%` : ''}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {active && !job.failed && !job.done ? (
+                  <Loader2 className="h-5 w-5 shrink-0 animate-spin text-blue-600" />
+                ) : (
+                  <Download className="h-5 w-5 shrink-0 text-slate-300 transition group-hover:text-blue-600" />
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}

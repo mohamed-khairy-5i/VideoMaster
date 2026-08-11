@@ -32,6 +32,20 @@ const ALLOWED_HOSTS = [
   /(?:^|\.)twimg\.com$/,
   /(?:^|\.)dailymotion\.com$/,
   /(?:^|\.)dmcdn\.net$/,
+  // Piped / Invidious mirrors proxy YouTube media on their own domains, so when
+  // extraction falls back to a mirror the resulting urls must be streamable too.
+  /(?:^|\.)piped\.[\w.]+$/,
+  /(?:^|\.)pipedproxy[\w.-]*\.[\w.]+$/,
+  /(?:^|\.)kavin\.rocks$/,
+  /(?:^|\.)adminforge\.de$/,
+  /(?:^|\.)private\.coffee$/,
+  /(?:^|\.)reallyaweso\.me$/,
+  /(?:^|\.)drgns\.space$/,
+  /(?:^|\.)nadeko\.net$/,
+  /(?:^|\.)nerdvpn\.de$/,
+  /(?:^|\.)yewtu\.be$/,
+  /(?:^|\.)privacyredirect\.com$/,
+  /(?:^|\.)melmac\.space$/,
 ];
 
 // Referer/Origin some CDNs require before they serve bytes.
