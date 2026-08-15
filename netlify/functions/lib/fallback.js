@@ -2,8 +2,8 @@
 //
 // Why this file exists:
 //   YouTube applies bot-detection per source IP. A shared cloud IP (which is
-//   what any free host gives you) periodically gets served LOGIN_REQUIRED —
-//   "Sign in to confirm you're not a bot" — regardless of how well-formed the
+//   what any free host gives you) periodically gets served LOGIN_REQUIRED,
+//   "Sign in to confirm you're not a bot", regardless of how well-formed the
 //   request is. This is not a bug we can code around; even yt-dlp fails on the
 //   exact same IP at the exact same moment.
 //
@@ -79,7 +79,12 @@ function firstValid(promises, isValid) {
 }
 
 function mapPiped(data, videoId) {
-  const video = (data.videoStreams || []).filter((s) => !s.videoOnly === false || s.videoOnly);
+  // Removed here: an unused `video` binding whose filter read
+  // `!s.videoOnly === false || s.videoOnly`. That expression negates a value
+  // before comparing it to false, which makes it equivalent to plain
+  // `s.videoOnly` on both sides of the ||, so it was a no-op that looked
+  // deliberate. Nothing consumed the result. Left in place it would eventually
+  // be copied by someone assuming it meant something.
   const muxed = (data.videoStreams || [])
     .filter((s) => s.videoOnly === false)
     .map((s) => ({

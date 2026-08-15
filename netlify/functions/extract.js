@@ -36,9 +36,9 @@ const JSON_HEADERS = {
  * Rewrite every stream URL to go through our edge proxy.
  *
  * Two reasons this is mandatory rather than optional:
- *  1. CORS — the CDNs return no Access-Control-Allow-Origin header, so a browser
+ *  1. CORS: the CDNs return no Access-Control-Allow-Origin header, so a browser
  *     fetch() from our origin is blocked. (Verified: ACAO is null.)
- *  2. Filename — a raw CDN link opens in a tab instead of saving, and has no
+ *  2. Filename: a raw CDN link opens in a tab instead of saving, and has no
  *     usable filename. The proxy sets Content-Disposition.
  */
 function proxify(formats, meta) {
@@ -62,7 +62,11 @@ function proxify(formats, meta) {
 /** Safe, readable filename that preserves Arabic characters. */
 function buildFilename(title, format) {
   const base = (title || 'video')
-    // strip only characters that are illegal in filenames
+    // Strip only characters that are illegal in filenames. The control-character
+    // range is the point of this expression, not an accident: a raw \n or \r in a
+    // video title would break the Content-Disposition header it ends up in, which
+    // is a header-injection vector, so the eslint rule is disabled knowingly.
+    // eslint-disable-next-line no-control-regex
     .replace(/[\\/:*?"<>|\x00-\x1f]/g, '')
     .replace(/\s+/g, ' ')
     .trim()

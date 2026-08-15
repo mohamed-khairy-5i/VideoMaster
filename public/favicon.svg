@@ -1,5 +1,22 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="8" fill="#2563EB"/>
-  <path d="M12 10L20 16L12 22V10Z" fill="white"/>
-  <circle cx="24" cy="8" r="3" fill="#10B981"/>
+  <!--
+    Matches the header mark exactly: one accent tile, one download arrow.
+
+    The previous icon used two accents (#2563EB tile + a #10B981 dot) and a
+    play triangle. Two problems with that: a second accent is exactly the
+    tell the design ruleset bans, and a play glyph advertises playback, which
+    this tool does not do. The arrow says "download", which is the one thing
+    it does.
+
+    #1D4ED8 is the light-mode accent token, so the icon and the UI agree.
+  -->
+  <rect width="32" height="32" rx="8" fill="#1D4ED8"/>
+  <path
+    d="M16 8V20M16 20L11 15M16 20L21 15"
+    stroke="white"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path d="M10 24H22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

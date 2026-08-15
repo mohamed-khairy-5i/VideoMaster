@@ -1,5 +1,5 @@
 // Extractors for non-YouTube platforms.
-// Every endpoint used here is a public, key-free endpoint — nothing in this file
+// Every endpoint used here is a public, key-free endpoint. Nothing in this file
 // costs money or requires registration.
 
 /** Follow short links (vm.tiktok.com, fb.watch, ...) to their canonical URL. */
@@ -20,7 +20,7 @@ async function resolveRedirect(url, signal) {
 /* ------------------------------------------------------------------ TikTok */
 
 /**
- * TikTok — no-watermark download.
+ * TikTok, no-watermark download.
  * The mobile `/aweme/v1/feed/` endpoint returns `play_addr` (clean, no watermark)
  * alongside `download_addr` (watermarked). We prefer play_addr, which is exactly
  * the feature users hunt for on other sites.
@@ -73,7 +73,7 @@ export async function extractTikTok(url, { signal } = {}) {
         url: noWatermark,
         ext: 'mp4',
         mimeType: 'video/mp4',
-        qualityLabel: `${item.video?.height || 720}p — بدون علامة مائية`,
+        qualityLabel: `${item.video?.height || 720}p بدون علامة مائية`,
         height: item.video?.height || null,
         width: item.video?.width || null,
         filesize: item.video?.play_addr?.data_size || null,
@@ -274,7 +274,7 @@ export async function extractReddit(url, { signal } = {}) {
 
 /* ---------------------------------------------------------------- Twitter/X */
 
-/** The syndication endpoint powers embedded tweets — public and key-free. */
+/** The syndication endpoint powers embedded tweets: public and key-free. */
 export async function extractTwitter(url, { signal } = {}) {
   const m = url.match(/(?:twitter|x)\.com\/[^/]+\/status(?:es)?\/(\d+)/);
   if (!m) {

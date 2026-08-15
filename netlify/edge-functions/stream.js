@@ -3,7 +3,7 @@
 // Streaming download proxy, deliberately implemented as an EDGE function
 // (Deno, runs on Netlify's CDN) rather than a normal serverless function:
 //
-//   * Regular Netlify functions cap at 10s runtime and ~6MB response — a 50MB
+//   * Regular Netlify functions cap at 10s runtime and ~6MB response, so a 50MB
 //     video is impossible there.
 //   * Edge functions can return a streaming ReadableStream, so bytes are piped
 //     straight from the origin CDN to the user without ever being buffered in
@@ -159,7 +159,7 @@ export default async (request) => {
     if (v) out.set(h, v);
   }
 
-  // upstream.body is a ReadableStream — returning it directly streams the bytes
+  // upstream.body is a ReadableStream: returning it directly streams the bytes
   // through without buffering.
   return new Response(upstream.body, { status: upstream.status, headers: out });
 };

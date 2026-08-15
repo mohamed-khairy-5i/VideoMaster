@@ -1,118 +1,53 @@
 {
-  "name": "VidCatch Pro - محمل الفيديوهات الاحترافي",
-  "short_name": "VidCatch Pro",
-  "description": "أسرع وأأمن موقع لتحميل الفيديوهات من أكثر من 100 منصة بجودة عالية ومجاناً 100%. مصمم بأحدث التقنيات مع واجهة مستخدم احترافية.",
-  "version": "1.2.0",
+  "name": "محمّل الفيديو",
+  "short_name": "محمّل الفيديو",
+  "description": "الصق رابط الفيديو واحصل على الملف مباشرة. يدعم يوتيوب وتيك توك وفيميو وتويتر/إكس وريديت وديلي موشن، بدون إعلانات ولا تسجيل.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "theme_color": "#2563eb",
+  "theme_color": "#1d4ed8",
   "background_color": "#ffffff",
   "lang": "ar",
   "dir": "rtl",
-  "categories": ["utilities", "multimedia", "productivity"],
+  "categories": ["utilities", "multimedia"],
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icon-192x192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.png", 
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-maskable-192x192.png",
-      "sizes": "192x192", 
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon-maskable-512x512.png",
+      "src": "/icon-maskable-512.png",
       "sizes": "512x512",
-      "type": "image/png", 
+      "type": "image/png",
       "purpose": "maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot-mobile-1.png",
-      "sizes": "640x1136",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "الشاشة الرئيسية لتحميل الفيديوهات"
-    },
-    {
-      "src": "/screenshot-desktop-1.png", 
-      "sizes": "1920x1080",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "واجهة سطح المكتب مع خيارات متقدمة"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "تحميل سريع",
-      "short_name": "تحميل",
-      "description": "ابدأ تحميل فيديو مباشرة",
-      "url": "/?quick=true",
-      "icons": [
-        {
-          "src": "/shortcut-download.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "المنصات المدعومة",
-      "short_name": "المنصات", 
-      "description": "عرض جميع المنصات المدعومة",
-      "url": "/platforms",
-      "icons": [
-        {
-          "src": "/shortcut-platforms.png",
-          "sizes": "96x96", 
-          "type": "image/png"
-        }
-      ]
     }
   ],
   "share_target": {
     "action": "/",
     "method": "GET",
     "params": {
-      "url": "url"
+      "url": "url",
+      "text": "text"
     }
-  },
-  "protocol_handlers": [
-    {
-      "protocol": "web+vidcatch",
-      "url": "/?url=%s"
-    }
-  ],
-  "related_applications": [],
-  "prefer_related_applications": false,
-  "edge_side_panel": {
-    "preferred_width": 400
-  },
-  "display_override": [
-    "window-controls-overlay",
-    "standalone",
-    "minimal-ui",
-    "browser"
-  ],
-  "launch_handler": {
-    "client_mode": "focus-existing"
   }
 }

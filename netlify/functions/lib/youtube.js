@@ -1,4 +1,4 @@
-// YouTube extractor — real extraction via the InnerTube (youtubei) API.
+// YouTube extractor. Real extraction via the InnerTube (youtubei) API.
 //
 // Why InnerTube instead of yt-dlp:
 //   yt-dlp needs Python + ffmpeg and 10-60s of runtime. Netlify functions cap at
@@ -190,7 +190,6 @@ export async function extractYouTube(url, { signal } = {}) {
 
   const attempted = [];
   const reasons = [];
-  let lastReason = null;
 
   for (const key of ['IOS', 'ANDROID', 'TVHTML5']) {
     const client = CLIENTS[key];
@@ -215,7 +214,7 @@ export async function extractYouTube(url, { signal } = {}) {
           'no reason given'
         }`
       );
-      continue; // try the next client — TV often succeeds where iOS fails
+      continue; // try the next client; TV often succeeds where iOS fails
     }
 
     const details = data.videoDetails || {};
@@ -263,12 +262,11 @@ export async function extractYouTube(url, { signal } = {}) {
     reasons.push(`mirrors: ${mirrorErr.message}`);
   }
 
-  // Classify against every reason we collected, not just the last one — the
+  // Classify against every reason we collected, not just the last one. The
   // decisive signal usually comes from the first client, and later clients
   // report a generic "no longer supported on this device" message that would
   // otherwise mask it.
   const allReasons = reasons.join(' | ');
-  lastReason = reasons[0] || null;
   const botBlocked = /LOGIN_REQUIRED|Sign in|not a bot/i.test(allReasons);
   const unavailable = /UNPLAYABLE|LIVE_STREAM_OFFLINE|private|removed|deleted/i.test(allReasons);
   const ageGated = /AGE_VERIFICATION|age.?restrict/i.test(allReasons);
@@ -282,7 +280,7 @@ export async function extractYouTube(url, { signal } = {}) {
     message = 'هذا الفيديو مقيّد بالعمر ولا يمكن تحميله بدون تسجيل دخول.';
     code = 'YOUTUBE_AGE_RESTRICTED';
   } else if (unavailable) {
-    message = 'هذا الفيديو غير متاح — قد يكون خاصًا أو محذوفًا.';
+    message = 'هذا الفيديو غير متاح. قد يكون خاصًا أو محذوفًا.';
     code = 'YOUTUBE_UNAVAILABLE';
   } else {
     message = 'تعذّر استخراج هذا الفيديو. تأكّد من الرابط وحاول مرة أخرى.';

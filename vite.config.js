@@ -19,7 +19,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Only chunk what we actually import. A `utils` chunk for axios/clsx
-        // produced an empty file because none of them are used any more —
+        // produced an empty file because none of them are used any more:
         // extraction runs on native fetch.
         manualChunks: {
           vendor: ['react', 'react-dom'],

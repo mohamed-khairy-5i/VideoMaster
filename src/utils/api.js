@@ -1,5 +1,5 @@
 // Client-side API layer. Talks to /api/extract and formats results for the UI.
-// No mock data anywhere in this file — every value shown to the user comes from
+// No mock data anywhere in this file. Every value shown to the user comes from
 // the real platform response.
 
 export class APIError extends Error {
@@ -115,7 +115,7 @@ export function formatCount(n) {
  * The important product decision here: a 4K YouTube stream is video-only, and a
  * naive site either hides it or hands the user a silent file. We surface it and
  * mark it `needsMux`, so the UI can merge it with the best audio track in the
- * browser via ffmpeg.wasm — giving 4K-with-sound at zero server cost.
+ * browser via ffmpeg.wasm, giving 4K-with-sound at zero server cost.
  */
 export function buildDownloadOptions(info) {
   const { muxed = [], videoOnly = [], audioOnly = [] } = info.formats || {};
@@ -137,7 +137,7 @@ export function buildDownloadOptions(info) {
       needsMux: false,
       noWatermark: f.noWatermark,
       isHls: f.isHls,
-      note: f.noWatermark ? 'بدون علامة مائية' : 'صوت + صورة — تحميل فوري',
+      note: f.noWatermark ? 'بدون علامة مائية' : 'صوت وصورة، تحميل فوري',
     });
   }
 
@@ -159,7 +159,7 @@ export function buildDownloadOptions(info) {
         audioUrl: bestAudio.downloadUrl,
         instant: false,
         needsMux: true,
-        note: 'يُدمج داخل متصفحك — الملف لا يُرفع لأي خادم',
+        note: 'يُدمج داخل متصفحك، ولا يُرفع الملف لأي خادم',
       });
     }
   }
@@ -189,8 +189,8 @@ export function buildDownloadOptions(info) {
 
 /**
  * Save a URL to disk. Because the proxy sets Content-Disposition, a plain
- * navigation is enough and the browser streams the file itself — no memory
- * pressure in the tab, and downloads survive page navigation.
+ * navigation is enough and the browser streams the file itself, so there is no
+ * memory pressure in the tab, and downloads survive page navigation.
  */
 export function saveDirect(downloadUrl) {
   const a = document.createElement('a');

@@ -1,103 +1,104 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, Download, Globe, Zap } from 'lucide-react'
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowDownIcon, ListIcon, XIcon } from '@phosphor-icons/react';
 
-const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const location = useLocation()
+/*
+ * The old nav linked to /api, a route deleted along with the fake API docs page.
+ * Clicking it rendered a blank screen. Every entry here is checked against the
+ * <Route> list in App.jsx.
+ *
+ * Also removed: a language toggle button that ran no handler. A control that
+ * does nothing is worse than no control, because the user concludes the whole
+ * site is broken. Arabic is the only locale that exists, so it is not offered
+ * as a choice.
+ */
+const NAV = [
+  { label: 'الرئيسية', to: '/' },
+  { label: 'من نحن', to: '/about' },
+  { label: 'الخصوصية', to: '/privacy' },
+];
 
-  const navigation = [
-    { name: 'الرئيسية', name_en: 'Home', href: '/' },
-    { name: 'من نحن', name_en: 'About', href: '/about' },
-    { name: 'API', name_en: 'API', href: '/api' },
-  ]
-
-  const isActive = (href) => location.pathname === href
+export default function Header() {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
 
   return (
-    <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200/50 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
-          {/* Logo */}
-          <Link 
-            to="/" 
-            className="flex items-center space-x-3 space-x-reverse hover:opacity-80 transition-opacity"
-          >
-            <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Download className="w-6 h-6 text-white" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-success-500 rounded-full flex items-center justify-center">
-                <Zap className="w-2.5 h-2.5 text-white" />
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold gradient-text">VidCatch Pro</span>
-              <span className="text-xs text-gray-500">احصل على أي فيديو</span>
-            </div>
-          </Link>
+    // 64px tall at desktop, inside the 80px cap.
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/85 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 rounded-control transition hover:opacity-80"
+        >
+          {/* Flat accent mark. The previous logo was a blue-to-purple gradient
+              tile with a green "zap" badge pinned to the corner. */}
+          <span className="grid h-9 w-9 place-items-center rounded-control bg-accent text-accent-fg">
+            <ArrowDownIcon size={18} weight="bold" />
+          </span>
+          <span className="text-[15px] font-semibold tracking-tight text-content">
+            محمّل الفيديو
+          </span>
+        </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8 space-x-reverse">
-            {navigation.map((item) => (
+        <nav className="hidden items-center gap-1 md:flex" aria-label="التنقّل الرئيسي">
+          {NAV.map(({ label, to }) => {
+            const active = pathname === to;
+            return (
               <Link
-                key={item.href}
-                to={item.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive(item.href)
-                    ? 'bg-primary-600 text-white shadow-lg'
-                    : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                key={to}
+                to={to}
+                // aria-current is what a screen reader uses to announce the
+                // current page. Colour alone does not carry that.
+                aria-current={active ? 'page' : undefined}
+                className={`rounded-control px-3 py-2 text-sm font-medium transition ${
+                  active
+                    ? 'bg-accent-soft text-accent-soft-fg'
+                    : 'text-content-muted hover:bg-surface-sunken hover:text-content'
                 }`}
               >
-                {item.name}
+                {label}
               </Link>
-            ))}
-            
-            {/* Language Toggle */}
-            <button className="flex items-center space-x-2 space-x-reverse px-3 py-2 text-sm text-gray-600 hover:text-primary-600 transition-colors">
-              <Globe className="w-4 h-4" />
-              <span>العربية</span>
-            </button>
-          </nav>
+            );
+          })}
+        </nav>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-          >
-            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200/50">
-            <nav className="flex flex-col space-y-2">
-              {navigation.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive(item.href)
-                      ? 'bg-primary-600 text-white'
-                      : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              
-              <button className="flex items-center space-x-2 space-x-reverse px-4 py-3 text-sm text-gray-600 hover:text-primary-600 transition-colors">
-                <Globe className="w-4 h-4" />
-                <span>تغيير اللغة</span>
-              </button>
-            </nav>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls="mobile-nav"
+          aria-label={open ? 'إغلاق القائمة' : 'فتح القائمة'}
+          className="grid h-10 w-10 place-items-center rounded-control text-content-muted transition
+                     hover:bg-surface-sunken hover:text-content active:translate-y-px md:hidden"
+        >
+          {open ? <XIcon size={20} /> : <ListIcon size={20} />}
+        </button>
       </div>
-    </header>
-  )
-}
 
-export default Header
+      {open && (
+        <nav
+          id="mobile-nav"
+          aria-label="التنقّل الرئيسي"
+          className="border-t border-line bg-surface px-4 pb-3 pt-2 md:hidden"
+        >
+          {NAV.map(({ label, to }) => {
+            const active = pathname === to;
+            return (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setOpen(false)}
+                aria-current={active ? 'page' : undefined}
+                className={`block rounded-control px-3 py-2.5 text-sm font-medium transition ${
+                  active ? 'bg-accent-soft text-accent-soft-fg' : 'text-content-muted'
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+    </header>
+  );
+}

@@ -1,4 +1,4 @@
-# Netlify configuration — tuned for the free tier.
+# Netlify configuration, tuned for the free tier.
 #
 # Architecture note: video bytes never touch a serverless function. Extraction is
 # a small JSON function; the actual file transfer runs through an edge function
@@ -22,7 +22,7 @@
   path = "/api/stream"
   function = "stream"
 
-# SPA fallback — must stay last so it never shadows the API routes.
+# SPA fallback. Must stay last so it never shadows the API routes.
 [[redirects]]
   from = "/*"
   to = "/index.html"

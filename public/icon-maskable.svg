@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Maskable source. Android crops maskable icons to whatever shape the launcher
+    prefers (circle, squircle, teardrop) and only the inner 80% is guaranteed
+    visible. So this variant is full-bleed with no corner radius of its own, and
+    the glyph is scaled to 80% around the centre to leave crop margin.
+
+    Coordinates are written out literally rather than via a transform: the
+    rasteriser used to generate the PNGs ignores transform on <g>, which
+    silently produced a plain blue square with no arrow.
+  -->
+  <rect width="32" height="32" fill="#1D4ED8"/>
+  <path
+    d="M16 9.6V19.2M16 19.2L12 15.2M16 19.2L20 15.2"
+    stroke="white"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path d="M11.2 22.4H20.8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+</svg>

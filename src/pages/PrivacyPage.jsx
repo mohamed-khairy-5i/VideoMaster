@@ -1,193 +1,123 @@
-import { Shield, Lock, Eye, Database, Globe, UserCheck } from 'lucide-react'
+import { Link } from 'react-router-dom';
 
-const PrivacyPage = () => {
-  const sections = [
-    {
-      id: 'collection',
-      title: 'المعلومات التي نجمعها',
-      icon: Database,
-      content: [
-        'عناوين URL للفيديوهات التي تطلب تحميلها (مؤقتاً لمعالجة الطلب فقط)',
-        'معلومات تقنية أساسية مثل نوع المتصفح ونظام التشغيل (للتحسين)',
-        'عنوان IP (للحماية من إساءة الاستخدام وتحليلات إحصائية مجهولة)',
-        'تفضيلات اللغة والموقع الجغرافي العام'
-      ]
-    },
-    {
-      id: 'usage',
-      title: 'كيف نستخدم معلوماتك',
-      icon: UserCheck,
-      content: [
-        'معالجة طلبات تحميل الفيديوهات وتقديم الخدمة',
-        'تحسين أداء الموقع وإصلاح الأخطاء التقنية',
-        'حماية الموقع من الهجمات والاستخدام المسيء',
-        'إنتاج إحصائيات مجهولة لتطوير الخدمة'
-      ]
-    },
-    {
-      id: 'storage',
-      title: 'تخزين المعلومات',
-      icon: Lock,
-      content: [
-        'لا نخزن أي ملفات فيديو على خوادمنا نهائياً',
-        'روابط الفيديوهات تُمحى خلال 24 ساعة من المعالجة',
-        'المعلومات التقنية تُحفظ بشكل مجهول لمدة أقصاها 30 يوماً',
-        'جميع البيانات محمية بأحدث تقنيات التشفير'
-      ]
-    },
-    {
-      id: 'sharing',
-      title: 'مشاركة المعلومات',
-      icon: Globe,
-      content: [
-        'نحن لا نبيع أو نؤجر أو نشارك معلوماتك الشخصية مع أطراف ثالثة',
-        'قد نشارك بيانات إحصائية مجهولة للأغراض البحثية',
-        'نلتزم بالكشف عن المعلومات فقط إذا طُلب ذلك قانونياً',
-        'نستخدم خدمات سحابية موثوقة مع ضمانات خصوصية قوية'
-      ]
-    },
-    {
-      id: 'rights',
-      title: 'حقوقك',
-      icon: Shield,
-      content: [
-        'يمكنك طلب حذف أي معلومات شخصية مرتبطة بك',
-        'يمكنك الوصول إلى المعلومات التي نحتفظ بها عنك',
-        'يمكنك إيقاف استخدام الخدمة في أي وقت',
-        'يمكنك تقديم شكوى إلى السلطات المختصة إذا لزم الأمر'
-      ]
-    },
-    {
-      id: 'security',
-      title: 'الأمان والحماية',
-      icon: Eye,
-      content: [
-        'نستخدم بروتوكول HTTPS لجميع الاتصالات',
-        'خوادمنا محمية بجدران حماية متقدمة',
-        'نجري مراجعات أمنية دورية لأنظمتنا',
-        'نحدث أنظمة الحماية باستمرار ضد التهديدات الجديدة'
-      ]
-    }
-  ]
+/*
+ * A privacy policy is a legal statement, so the only acceptable version is one
+ * that matches the code. The previous text did not, and it overclaimed in the
+ * direction that creates liability:
+ *
+ *  - It described three categories of cookies in use (session, security,
+ *    performance). The site sets zero cookies and has no analytics.
+ *  - It claimed IP addresses were stored for 30 days and video URLs erased
+ *    within 24 hours. There is no database and no logging layer, so neither
+ *    retention period describes anything real.
+ *  - It claimed "periodic security audits", "advanced firewalls" and formal
+ *    GDPR / CCPA / Gulf compliance programmes. Declaring compliance you have not
+ *    implemented is worse than saying nothing.
+ *  - It offered privacy@, delete@ and a /contact form. The domain is not
+ *    registered and /contact is not a route, so every stated way to exercise
+ *    your rights was a dead end.
+ *
+ * Rewritten to describe exactly what the request path does. The honest version
+ * is also the stronger one: there is nothing to delete because nothing is kept.
+ */
 
+const LAST_UPDATED = '2026-08-12';
+
+export default function PrivacyPage() {
   return (
-    <div className="min-h-screen py-16 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-6">
-            <Shield className="w-8 h-8 text-primary-600" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            سياسة الخصوصية
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            نحن نقدر خصوصيتك ونلتزم بحماية معلوماتك الشخصية. هذه السياسة توضح كيف نجمع ونستخدم ونحمي بياناتك.
-          </p>
-          <div className="mt-6 text-sm text-gray-500">
-            آخر تحديث: 27 أغسطس 2025
-          </div>
-        </div>
+    <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
+      <h1 className="text-3xl font-bold tracking-tight text-content sm:text-4xl">
+        سياسة الخصوصية
+      </h1>
+      <p className="mt-4 text-sm text-content-subtle">
+        آخر تحديث:{' '}
+        <time dateTime={LAST_UPDATED} data-numeric>
+          12 أغسطس 2026
+        </time>
+      </p>
 
-        {/* Privacy Sections */}
-        <div className="space-y-12">
-          {sections.map((section, index) => {
-            const Icon = section.icon
-            return (
-              <div key={section.id} className="card">
-                <div className="flex items-start space-x-4 space-x-reverse mb-6">
-                  <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-6 h-6 text-primary-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                      {section.title}
-                    </h2>
-                    <ul className="space-y-3">
-                      {section.content.map((item, itemIndex) => (
-                        <li key={itemIndex} className="flex items-start space-x-3 space-x-reverse text-gray-600">
-                          <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
-                          <span className="leading-relaxed">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+      <p className="mt-6 max-w-prose text-lg leading-relaxed text-content-muted">
+        لا حسابات، ولا ملفات تعريف ارتباط، ولا تحليلات، ولا قاعدة بيانات. هذه
+        الصفحة تشرح ما يحدث تقنيًا عند استخدامك الأداة.
+      </p>
 
-        {/* GDPR Compliance */}
-        <div className="card bg-blue-50 border-blue-200 mt-12">
-          <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center space-x-2 space-x-reverse">
-            <Globe className="w-6 h-6" />
-            <span>الامتثال للقوانين الدولية</span>
-          </h3>
-          <p className="text-blue-800 leading-relaxed">
-            نلتزم بقوانين حماية البيانات المحلية والدولية بما في ذلك اللائحة العامة لحماية البيانات (GDPR) 
-            وقانون خصوصية المستهلك في كاليفورنيا (CCPA) وقوانين حماية البيانات في المملكة العربية السعودية ودول الخليج.
-          </p>
-        </div>
-
-        {/* Cookies Policy */}
-        <div className="card bg-gray-50 mt-8">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">سياسة ملفات تعريف الارتباط (Cookies)</h3>
-          <div className="space-y-4 text-gray-600">
-            <p>
-              نستخدم ملفات تعريف الارتباط الضرورية فقط لتشغيل الموقع بشكل صحيح. هذه الملفات لا تحتوي على معلومات شخصية 
-              ولا تُستخدم لتتبع سلوكك عبر مواقع أخرى.
-            </p>
-            <div className="bg-white p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">أنواع الملفات المستخدمة:</h4>
-              <ul className="space-y-2 text-sm">
-                <li>• <strong>ملفات الجلسة:</strong> لحفظ تفضيلات اللغة والإعدادات</li>
-                <li>• <strong>ملفات الأمان:</strong> لحماية الموقع من الهجمات</li>
-                <li>• <strong>ملفات الأداء:</strong> لقياس سرعة الموقع وتحسينه</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Contact for Privacy */}
-        <div className="card bg-primary-50 border-primary-200 mt-8">
-          <h3 className="text-xl font-bold text-primary-900 mb-4">أسئلة حول الخصوصية؟</h3>
-          <p className="text-primary-800 mb-6">
-            إذا كان لديك أي أسئلة أو مخاوف حول سياسة الخصوصية أو معالجة بياناتك، لا تتردد في التواصل معنا.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <a 
-              href="mailto:privacy@vidcatch.pro"
-              className="btn-primary"
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold text-content">ما لا نجمعه</h2>
+        <ul className="mt-5 space-y-3">
+          {[
+            'لا نطلب حسابًا ولا بريدًا إلكترونيًا ولا أي بيانات تسجيل.',
+            'لا نضع ملفات تعريف ارتباط. لا للجلسات، ولا للتفضيلات، ولا للتتبّع.',
+            'لا نستخدم Google Analytics ولا أي أداة قياس أو بكسل تتبّع من طرف ثالث.',
+            'لا نحتفظ بسجلّ للروابط التي تحلّلها ولا للملفات التي تحمّلها.',
+            'لا نحتفظ بأي ملف فيديو أو صوت على خوادمنا، لا مؤقتًا ولا دائمًا.',
+          ].map((item) => (
+            <li
+              key={item}
+              className="flex max-w-prose gap-3 text-[15px] leading-relaxed text-content-muted"
             >
-              راسل فريق الخصوصية
-            </a>
-            <a 
-              href="/contact"
-              className="btn-secondary"
-            >
-              نموذج الاتصال
-            </a>
-          </div>
-        </div>
+              <span aria-hidden className="mt-2 h-1 w-3 shrink-0 rounded-full bg-accent" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </section>
 
-        {/* Data Deletion Request */}
-        <div className="card bg-red-50 border-red-200 mt-8">
-          <h3 className="text-xl font-bold text-red-900 mb-4">طلب حذف البيانات</h3>
-          <p className="text-red-800 mb-4">
-            يمكنك طلب حذف جميع المعلومات المرتبطة بك من أنظمتنا في أي وقت. سنقوم بمعالجة الطلب خلال 30 يوماً.
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold text-content">ما يحدث عند تحليل رابط</h2>
+        <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-content-muted">
+          <p className="max-w-prose">
+            يُرسل الرابط إلى دالة على الخادم، فتسأل المنصة عن بيانات الفيديو وتعيد
+            لك قائمة الجودات. تعمل الدالة في الذاكرة وتنتهي مع انتهاء الطلب، ولا
+            تكتب الرابط في أي مكان.
           </p>
-          <a 
-            href="mailto:delete@vidcatch.pro?subject=طلب حذف البيانات"
-            className="inline-flex items-center space-x-2 space-x-reverse text-red-700 hover:text-red-900 font-medium"
-          >
-            <span>إرسال طلب حذف البيانات</span>
-            <span>←</span>
-          </a>
+          <p className="max-w-prose">
+            عند اختيارك جودة، تمرّ بايتات الملف عبر وسيط بثّي ينقلها من المنصة إليك
+            دون تخزين. هذا الوسيط ضروري لأن خوادم المنصات ترفض الطلبات القادمة
+            مباشرة من المتصفح.
+          </p>
+          <p className="max-w-prose">
+            دمج الصوت مع الصورة للجودات العالية يتم بالكامل داخل متصفحك. الملف لا
+            يُرفع إلى أي خادم في هذه المرحلة، ولا يغادر جهازك.
+          </p>
         </div>
-      </div>
-    </div>
-  )
+      </section>
+
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold text-content">ما تراه أطراف أخرى</h2>
+        <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-content-muted">
+          <p className="max-w-prose">
+            الوضوح هنا مهم: نحن لا نتحكّم في كل طرف على المسار.
+          </p>
+          <ul className="mt-4 space-y-3">
+            {[
+              ['مزوّد الاستضافة', 'يرى عنوان IP والطلبات الواردة على مستوى الشبكة، كما هو الحال مع أي موقع على الإنترنت. هذا خارج سيطرتنا ويخضع لسياسة المزوّد.'],
+              ['المنصة الأصلية', 'يوتيوب أو تيك توك أو غيرها ترى طلبًا لبيانات الفيديو صادرًا من خادمنا، لا من جهازك.'],
+              ['خطوط Google Fonts', 'تُحمّل الخطوط من fonts.gstatic.com، وهو ما يعرّض عنوان IP الخاص بك لجوجل عند أول زيارة. استضافة الخطوط محليًا خطوة مخطّطة لإزالة هذا الطرف.'],
+              ['شبكة jsDelivr', 'ملفات ffmpeg.wasm تُحمّل من cdn.jsdelivr.net عند أول عملية دمج فقط.'],
+            ].map(([who, what]) => (
+              <li key={who} className="max-w-prose">
+                <strong className="font-semibold text-content">{who}:</strong> {what}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="mt-12 rounded-card border border-line bg-surface-sunken p-6">
+        <h2 className="text-xl font-semibold text-content">حقوقك</h2>
+        <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-content-muted">
+          حقوق الوصول إلى بياناتك أو تصحيحها أو حذفها تفترض وجود بيانات محفوظة
+          مرتبطة بك. لا يوجد لدينا ما يُحذف: لا حساب، ولا سجل تحميل، ولا ملف تعريف.
+          إن أردت التوقف عن الاستخدام، أغلق الصفحة.
+        </p>
+        <p className="mt-4 max-w-prose text-[15px] leading-relaxed text-content-muted">
+          راجع أيضًا{' '}
+          <Link to="/terms" className="font-medium text-accent underline underline-offset-4">
+            شروط الاستخدام
+          </Link>
+          .
+        </p>
+      </section>
+    </article>
+  );
 }
-
-export default PrivacyPage

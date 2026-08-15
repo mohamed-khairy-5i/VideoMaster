@@ -1,0 +1,16 @@
+# This file used to sit in the repo root, where Vite never copied it, so the
+# deployed site had no robots.txt at all. It lives in public/ now.
+#
+# Also removed: "Allow: /api" (that route was deleted), Disallow rules for
+# /admin/ and /private/ (neither exists, and naming imaginary private paths only
+# tells scanners where to look), and a Sitemap line pointing at a domain that is
+# not registered. A sitemap URL on someone else's domain is worse than none.
+
+User-agent: *
+Allow: /
+
+# API endpoints return JSON for the app, not pages worth indexing.
+Disallow: /api/
+
+# Sitemap: add the absolute URL here once a real domain is connected.
+# Sitemaps must use absolute URLs, so this line cannot be filled in earlier.

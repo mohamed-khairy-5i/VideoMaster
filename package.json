@@ -2,13 +2,13 @@
   "name": "videomaster",
   "version": "2.0.0",
   "private": true,
-  "description": "محمّل فيديو حقيقي وسريع بدون إعلانات — يدعم YouTube و TikTok و Vimeo و Twitter/X و Reddit و Dailymotion",
+  "description": "محمّل فيديو حقيقي وسريع بدون إعلانات، يدعم YouTube و TikTok و Vimeo و Twitter/X و Reddit و Dailymotion",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-sitemap.mjs",
     "preview": "vite preview",
-    "lint": "eslint src netlify --ext js,jsx --max-warnings 0",
+    "lint": "eslint src netlify scripts public/sw.js --ext js,jsx,mjs --max-warnings 0",
     "test:extract": "node scripts/verify-engine.mjs"
   },
   "keywords": [
@@ -21,7 +21,7 @@
   "author": "Mohamed khairy",
   "license": "MIT",
   "dependencies": {
-    "lucide-react": "^0.263.1",
+    "@phosphor-icons/react": "^2.1.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.15.0"

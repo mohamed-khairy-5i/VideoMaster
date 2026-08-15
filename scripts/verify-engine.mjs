@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Engine smoke test — run with `npm run test:extract`.
+// Engine smoke test. Run with `npm run test:extract`.
 //
 // Extractors depend on third-party endpoints that change without notice, so this
 // script exists to answer "is the engine still working?" in a few seconds,
@@ -34,18 +34,18 @@ for (const c of CASES) {
       (r.formats.videoOnly?.length || 0) +
       (r.formats.audioOnly?.length || 0);
     if (!r.title || n === 0) throw new Error('no title or no formats');
-    ok(`${c.name} — "${r.title.slice(0, 40)}" · ${n} formats · via ${r.extractedVia} · ${Date.now() - t}ms`);
+    ok(`${c.name} · "${r.title.slice(0, 40)}" · ${n} formats · via ${r.extractedVia} · ${Date.now() - t}ms`);
     pass++;
   } catch (e) {
     // YouTube rate-limits by source IP. On a shared cloud/CI address some videos
-    // answer LOGIN_REQUIRED no matter how the request is built — yt-dlp fails on
+    // answer LOGIN_REQUIRED no matter how the request is built; yt-dlp fails on
     // the same IP too. That is an environment condition, not a code regression,
     // so we surface it as a warning instead of failing the suite.
     if (e.code === 'YOUTUBE_BOT_CHECK') {
-      note(`${c.name} — bot check on this IP (expected on shared hosts; not a code fault)`);
+      note(`${c.name} · bot check on this IP (expected on shared hosts; not a code fault)`);
       warn++;
     } else {
-      bad(`${c.name} — ${e.message}`);
+      bad(`${c.name} · ${e.message}`);
       fail++;
     }
   }
@@ -80,7 +80,7 @@ for (const [label, url, expected] of guards) {
       fail++;
     }
   } catch (e) {
-    bad(`${label} — threw ${e.message}`);
+    bad(`${label} · threw ${e.message}`);
     fail++;
   }
 }
@@ -98,7 +98,7 @@ try {
     fail++;
   }
 } catch (e) {
-  bad(`proxy guard — ${e.message}`);
+  bad(`proxy guard · ${e.message}`);
   fail++;
 }
 
@@ -122,7 +122,7 @@ try {
   ok(`streamed ${buf.length} real bytes · HTTP ${res.status} · forced download`);
   pass++;
 } catch (e) {
-  bad(`byte transfer — ${e.message}`);
+  bad(`byte transfer · ${e.message}`);
   fail++;
 }
 

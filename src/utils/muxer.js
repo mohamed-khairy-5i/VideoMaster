@@ -1,13 +1,13 @@
 // Client-side muxing with ffmpeg.wasm.
 //
-// The problem it solves: on YouTube, every stream above 720p is video-only —
+// The problem it solves: on YouTube, every stream above 720p is video-only:
 // audio lives in a separate track. Competitors either cap you at 720p, hand you
 // a silent 4K file, or run ffmpeg on their own servers (which costs money and
 // cannot fit in a 10s serverless function).
 //
 // We do the merge inside the user's browser instead. Consequences:
 //   * server cost stays at zero, so this scales with users instead of against us
-//   * the media never touches a third-party machine — a real privacy guarantee
+//   * the media never touches a third-party machine, a real privacy guarantee
 //   * quality is untouched: `-c copy` remuxes the containers without re-encoding,
 //     so it is fast and lossless.
 //

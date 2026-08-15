@@ -1,307 +1,122 @@
-// Enhanced Service Worker for VidCatch Pro
-// Advanced caching and performance optimization
+// Service worker: offline shell only.
+//
+// The previous version had one bug bad enough to matter and a lot of code for
+// features that do not exist.
+//
+// The bug: '/api/' was routed to a "network first" strategy that cached every
+// successful response. /api/stream is the download proxy, so a 2 GB video
+// download was copied into the Cache API on its way to disk. That silently
+// fills the origin's storage quota, and once the quota is hit the browser starts
+// evicting, so downloads begin failing for reasons no user could diagnose. API
+// traffic is now skipped entirely: it never enters this file.
+//
+// Removed as fiction: push notification handling and a notificationclick
+// handler (no push subscription exists anywhere and no server can send one), a
+// background-sync handler whose body was a console.log, a getCacheSize()
+// function that read every cached response into a Blob to sum sizes (nothing
+// called it), and a fallback to /offline.html, a file that does not exist, so
+// the offline path returned undefined instead of a page.
+//
+// CACHE_VERSION must change whenever the shell changes, otherwise returning
+// visitors keep the old design forever. That is why the old 'v1.2.0' keys are
+// gone rather than reused.
 
-const CACHE_NAME = 'vidcatch-pro-v1.2.0';
-const STATIC_CACHE_NAME = 'vidcatch-static-v1.2.0';
-const DYNAMIC_CACHE_NAME = 'vidcatch-dynamic-v1.2.0';
+const CACHE_VERSION = 'v3';
+const SHELL_CACHE = `shell-${CACHE_VERSION}`;
 
-// Assets to cache on install
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  // Critical assets will be added during build
-];
+// Only what is needed to render something offline. Hashed assets are added
+// lazily on first visit, because their filenames change every build and cannot
+// be listed here.
+const SHELL_ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.svg'];
 
-// Network-first resources (always try network first)
-const NETWORK_FIRST = [
-  '/api/',
-  '/.netlify/functions/',
-];
-
-// Cache-first resources (try cache first, fallback to network)
-const CACHE_FIRST = [
-  '/assets/',
-  '.js',
-  '.css',
-  '.woff2',
-  '.woff',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.gif',
-  '.webp',
-  '.svg'
-];
-
-// Stale-while-revalidate resources
-const STALE_WHILE_REVALIDATE = [
-  '/pages/',
-  '/components/'
-];
-
-// Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
-  
   event.waitUntil(
-    Promise.all([
-      // Cache static assets
-      caches.open(STATIC_CACHE_NAME).then((cache) => {
-        console.log('Service Worker: Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      }),
-      
-      // Skip waiting to activate immediately
-      self.skipWaiting()
-    ])
+    (async () => {
+      const cache = await caches.open(SHELL_CACHE);
+      // addAll() rejects the whole install if any single request fails, which
+      // would leave the worker permanently uninstalled. Cache individually.
+      await Promise.allSettled(SHELL_ASSETS.map((asset) => cache.add(asset)));
+      await self.skipWaiting();
+    })()
   );
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
-  
   event.waitUntil(
-    Promise.all([
-      // Clean up old caches
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE_NAME && 
-                cacheName !== DYNAMIC_CACHE_NAME && 
-                cacheName !== CACHE_NAME) {
-              console.log('Service Worker: Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      }),
-      
-      // Claim all clients immediately
-      self.clients.claim()
-    ])
+    (async () => {
+      const names = await caches.keys();
+      await Promise.all(
+        names.filter((n) => n !== SHELL_CACHE).map((n) => caches.delete(n))
+      );
+      await self.clients.claim();
+    })()
   );
 });
 
-// Fetch event - implement caching strategies
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
-  
-  // Skip non-GET requests and chrome-extension requests
-  if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
+
+  if (request.method !== 'GET') return;
+
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
     return;
   }
-  
-  // Determine caching strategy based on URL
-  if (shouldUseNetworkFirst(request.url)) {
-    event.respondWith(networkFirstStrategy(request));
-  } else if (shouldUseCacheFirst(request.url)) {
-    event.respondWith(cacheFirstStrategy(request));
-  } else if (shouldUseStaleWhileRevalidate(request.url)) {
-    event.respondWith(staleWhileRevalidateStrategy(request));
-  } else {
-    // Default: Network first for HTML, Cache first for assets
-    if (request.destination === 'document') {
-      event.respondWith(networkFirstStrategy(request));
-    } else {
-      event.respondWith(cacheFirstStrategy(request));
-    }
+
+  // Same-origin only. Fonts, the jsDelivr CDN and platform media are left to the
+  // browser's own HTTP cache, which already handles them correctly.
+  if (url.origin !== self.location.origin) return;
+
+  // Never intercept the API. Extraction must always be fresh, and the stream
+  // proxy must never be buffered into storage.
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/.netlify/')) {
+    return;
   }
-});
 
-// Strategy implementations
-async function networkFirstStrategy(request) {
-  const cache = await caches.open(DYNAMIC_CACHE_NAME);
-  
-  try {
-    // Try network first
-    const networkResponse = await fetch(request);
-    
-    // Cache successful responses
-    if (networkResponse.status === 200) {
-      cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    console.log('Service Worker: Network failed, trying cache:', request.url);
-    
-    // Fallback to cache
-    const cachedResponse = await cache.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    // Return offline page for documents
-    if (request.destination === 'document') {
-      return caches.match('/offline.html') || 
-             new Response('Offline - Please check your internet connection', {
-               status: 503,
-               statusText: 'Service Unavailable'
-             });
-    }
-    
-    throw error;
+  // Navigations: network first so a deploy is picked up immediately, with the
+  // cached shell as the offline fallback. The SPA serves every route from
+  // index.html, so that one entry covers all of them.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      (async () => {
+        try {
+          return await fetch(request);
+        } catch {
+          const cache = await caches.open(SHELL_CACHE);
+          return (
+            (await cache.match(request)) ||
+            (await cache.match('/index.html')) ||
+            new Response('لا يوجد اتصال بالإنترنت.', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+            })
+          );
+        }
+      })()
+    );
+    return;
   }
-}
 
-async function cacheFirstStrategy(request) {
-  const cache = await caches.open(STATIC_CACHE_NAME);
-  
-  // Try cache first
-  const cachedResponse = await cache.match(request);
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-  
-  // Fallback to network
-  try {
-    const networkResponse = await fetch(request);
-    
-    // Cache successful responses
-    if (networkResponse.status === 200) {
-      cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    console.log('Service Worker: Both cache and network failed for:', request.url);
-    throw error;
-  }
-}
+  // Build output under /assets/ is content-hashed, so a cache hit can never be
+  // stale: a changed file gets a different filename.
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(SHELL_CACHE);
+        const hit = await cache.match(request);
+        if (hit) return hit;
 
-async function staleWhileRevalidateStrategy(request) {
-  const cache = await caches.open(DYNAMIC_CACHE_NAME);
-  
-  // Get from cache immediately
-  const cachedResponse = await cache.match(request);
-  
-  // Fetch from network in background
-  const networkResponsePromise = fetch(request).then((networkResponse) => {
-    if (networkResponse.status === 200) {
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  }).catch((error) => {
-    console.log('Service Worker: Background fetch failed:', error);
-  });
-  
-  // Return cached version if available, otherwise wait for network
-  return cachedResponse || networkResponsePromise;
-}
-
-// Helper functions to determine caching strategy
-function shouldUseNetworkFirst(url) {
-  return NETWORK_FIRST.some(pattern => url.includes(pattern));
-}
-
-function shouldUseCacheFirst(url) {
-  return CACHE_FIRST.some(pattern => url.includes(pattern));
-}
-
-function shouldUseStaleWhileRevalidate(url) {
-  return STALE_WHILE_REVALIDATE.some(pattern => url.includes(pattern));
-}
-
-// Background sync for failed requests (if supported)
-if ('sync' in self.registration) {
-  self.addEventListener('sync', (event) => {
-    if (event.tag === 'background-sync') {
-      console.log('Service Worker: Background sync triggered');
-      event.waitUntil(handleBackgroundSync());
-    }
-  });
-}
-
-async function handleBackgroundSync() {
-  // Handle failed requests when back online
-  // This could include retry failed video info requests
-  console.log('Service Worker: Handling background sync');
-}
-
-// Push notifications (if needed in future)
-self.addEventListener('push', (event) => {
-  if (event.data) {
-    const data = event.data.json();
-    
-    const options = {
-      body: data.body,
-      icon: '/icon-192x192.png',
-      badge: '/badge-72x72.png',
-      tag: data.tag || 'vidcatch-notification',
-      requireInteraction: true,
-      actions: data.actions || []
-    };
-    
-    event.waitUntil(
-      self.registration.showNotification(data.title || 'VidCatch Pro', options)
+        const response = await fetch(request);
+        if (response.ok) cache.put(request, response.clone());
+        return response;
+      })()
     );
   }
 });
 
-// Notification click handling
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  
-  event.waitUntil(
-    self.clients.openWindow('/')
-  );
-});
-
-// Message handling for communication with main thread
+// Lets the page trigger an update without a manual reload.
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type) {
-    switch (event.data.type) {
-      case 'SKIP_WAITING':
-        self.skipWaiting();
-        break;
-        
-      case 'GET_CACHE_SIZE':
-        getCacheSize().then(size => {
-          event.ports[0].postMessage({ cacheSize: size });
-        });
-        break;
-        
-      case 'CLEAR_CACHE':
-        clearAllCaches().then(() => {
-          event.ports[0].postMessage({ success: true });
-        });
-        break;
-        
-      default:
-        console.log('Service Worker: Unknown message type:', event.data.type);
-    }
-  }
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
-
-// Utility functions
-async function getCacheSize() {
-  const cacheNames = await caches.keys();
-  let totalSize = 0;
-  
-  for (const cacheName of cacheNames) {
-    const cache = await caches.open(cacheName);
-    const requests = await cache.keys();
-    
-    for (const request of requests) {
-      const response = await cache.match(request);
-      if (response) {
-        const blob = await response.blob();
-        totalSize += blob.size;
-      }
-    }
-  }
-  
-  return totalSize;
-}
-
-async function clearAllCaches() {
-  const cacheNames = await caches.keys();
-  return Promise.all(
-    cacheNames.map(cacheName => caches.delete(cacheName))
-  );
-}
-
-console.log('Service Worker: Script loaded successfully');
