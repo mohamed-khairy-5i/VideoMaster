@@ -7,21 +7,16 @@
 
 import { normaliseUrl, detectPlatform, PLATFORMS } from './lib/detect.js';
 import { extractYouTube } from './lib/youtube.js';
-import {
-  extractTikTok,
-  extractVimeo,
-  extractReddit,
-  extractTwitter,
-  extractDailymotion,
-} from './lib/platforms.js';
+import { extractTikTok, extractReddit, extractTwitter } from './lib/platforms.js';
 
+// Vimeo and Dailymotion were removed on purpose; see the block comments in
+// lib/platforms.js. Vimeo is DRM-encrypted end to end (DMCA 1201 territory) and
+// Dailymotion's only download URL answered 403 while promising an instant MP4.
 const EXTRACTORS = {
   youtube: extractYouTube,
   tiktok: extractTikTok,
-  vimeo: extractVimeo,
   reddit: extractReddit,
   twitter: extractTwitter,
-  dailymotion: extractDailymotion,
 };
 
 const JSON_HEADERS = {

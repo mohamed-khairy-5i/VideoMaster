@@ -153,59 +153,29 @@ export async function extractTikTok(url, { signal } = {}) {
 }
 
 /* ------------------------------------------------------------------- Vimeo */
-
-/** Vimeo publishes a public player config JSON with progressive MP4 links. */
-export async function extractVimeo(url, { signal } = {}) {
-  const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (!m) {
-    const err = new Error('رابط Vimeo غير صالح');
-    err.code = 'INVALID_VIMEO_URL';
-    throw err;
-  }
-  const id = m[1];
-
-  const res = await fetch(`https://player.vimeo.com/video/${id}/config`, {
-    signal,
-    headers: { Referer: 'https://vimeo.com/', 'User-Agent': 'Mozilla/5.0' },
-  });
-  if (!res.ok) {
-    const err = new Error('هذا الفيديو خاص أو محمي بكلمة مرور على Vimeo');
-    err.code = 'VIMEO_EXTRACTION_FAILED';
-    throw err;
-  }
-  const cfg = await res.json();
-  const v = cfg.video || {};
-  const progressive = cfg.request?.files?.progressive || [];
-
-  return {
-    platform: 'vimeo',
-    id,
-    title: v.title || 'فيديو Vimeo',
-    author: v.owner?.name || null,
-    duration: v.duration || null,
-    thumbnail: v.thumbs?.base || v.thumbs?.['1280'] || null,
-    webpageUrl: v.url || `https://vimeo.com/${id}`,
-    formats: {
-      muxed: progressive
-        .map((p) => ({
-          itag: `vimeo-${p.quality}`,
-          url: p.url,
-          ext: 'mp4',
-          mimeType: 'video/mp4',
-          qualityLabel: p.quality,
-          height: p.height || null,
-          width: p.width || null,
-          fps: p.fps || null,
-          hasAudio: true,
-          hasVideo: true,
-        }))
-        .sort((a, b) => (b.height || 0) - (a.height || 0)),
-      videoOnly: [],
-      audioOnly: [],
-    },
-    extractedVia: 'player-config',
-  };
-}
+//
+// REMOVED, and it must stay removed. This is a legal boundary, not a bug.
+//
+// Vimeo used to publish `request.files.progressive`: a plain array of
+// unencrypted MP4 URLs. That array is now empty on every video we probed.
+// The only remaining delivery paths are encrypted:
+//
+//   DASH  ->  <ContentProtection schemeIdUri="urn:mpeg:dash:mp4protection:2011"
+//                                value="cenc" cenc:default_KID="..."> plus
+//             Widevine (edef8ba9-79d6-4ace-a3c8-27dcd51d21ed) and
+//             PlayReady (9a04f079-9840-4286-ab92-e65be0885f95) pssh boxes.
+//   HLS   ->  #EXT-X-KEY:METHOD=SAMPLE-AES,URI="skd://drm",
+//             KEYFORMAT="com.apple.streamingkeydelivery"   (FairPlay)
+//
+// Turning those bytes into a playable file requires obtaining a content key
+// from a licence server, i.e. circumventing a technological protection
+// measure. In the US that is DMCA 17 U.S.C. 1201, and unlike ordinary
+// copyright it has no fair-use style exemption for this use. It is a
+// criminal provision, not a terms-of-service matter.
+//
+// So there is no "clever fix" here and no amount of engineering makes it
+// legal. Shipping a Vimeo button that cannot work would also be exactly the
+// false promise we removed everywhere else in this codebase.
 
 /* ------------------------------------------------------------------ Reddit */
 
@@ -300,6 +270,16 @@ export async function extractTwitter(url, { signal } = {}) {
   }
   const t = await res.json();
 
+  // A deleted or protected tweet answers HTTP 200 with a `tombstone` payload
+  // and no media. The previous version fell through this case and returned a
+  // made-up title ('تغريدة') with an empty format list, so the UI showed a
+  // successful-looking result card with nothing to download. Fail loudly.
+  if (t.tombstone || t.__typename === 'TweetTombstone') {
+    const err = new Error('هذه التغريدة محذوفة أو من حساب محمي');
+    err.code = 'TWITTER_UNAVAILABLE';
+    throw err;
+  }
+
   const variants =
     t.mediaDetails?.flatMap((md) => md.video_info?.variants || []) ||
     t.video?.variants ||
@@ -324,6 +304,15 @@ export async function extractTwitter(url, { signal } = {}) {
     })
     .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
+  // Text-only and photo-only tweets are perfectly valid tweets, but there is
+  // nothing here to download. Say that plainly rather than rendering an empty
+  // download card.
+  if (muxed.length === 0) {
+    const err = new Error('لا يوجد فيديو في هذه التغريدة');
+    err.code = 'TWITTER_NO_VIDEO';
+    throw err;
+  }
+
   return {
     platform: 'twitter',
     id,
@@ -341,53 +330,24 @@ export async function extractTwitter(url, { signal } = {}) {
 }
 
 /* -------------------------------------------------------------- Dailymotion */
-
-export async function extractDailymotion(url, { signal } = {}) {
-  const m = url.match(/dailymotion\.com\/video\/([a-zA-Z0-9]+)/) || url.match(/dai\.ly\/([a-zA-Z0-9]+)/);
-  if (!m) {
-    const err = new Error('رابط Dailymotion غير صالح');
-    err.code = 'INVALID_DAILYMOTION_URL';
-    throw err;
-  }
-  const id = m[1];
-
-  const res = await fetch(
-    `https://api.dailymotion.com/video/${id}?fields=id,title,owner.screenname,duration,thumbnail_720_url,views_total`,
-    { signal, headers: { 'User-Agent': 'Mozilla/5.0' } }
-  );
-  if (!res.ok) {
-    const err = new Error('تعذّر جلب بيانات Dailymotion');
-    err.code = 'DAILYMOTION_EXTRACTION_FAILED';
-    throw err;
-  }
-  const d = await res.json();
-
-  return {
-    platform: 'dailymotion',
-    id,
-    title: d.title || 'فيديو Dailymotion',
-    author: d['owner.screenname'] || null,
-    duration: d.duration || null,
-    viewCount: d.views_total ?? null,
-    thumbnail: d.thumbnail_720_url || null,
-    webpageUrl: `https://www.dailymotion.com/video/${id}`,
-    // Dailymotion serves HLS only; we expose the manifest for the player/proxy.
-    formats: {
-      muxed: [
-        {
-          itag: 'dm-hls',
-          url: `https://www.dailymotion.com/cdn/manifest/video/${id}.m3u8`,
-          ext: 'm3u8',
-          mimeType: 'application/x-mpegURL',
-          qualityLabel: 'HLS (جودة تلقائية)',
-          hasAudio: true,
-          hasVideo: true,
-          isHls: true,
-        },
-      ],
-      videoOnly: [],
-      audioOnly: [],
-    },
-    extractedVia: 'dailymotion-api',
-  };
-}
+//
+// REMOVED. Two independent reasons, either one sufficient.
+//
+// 1. The URL this extractor returned was never real. It built
+//    `https://www.dailymotion.com/cdn/manifest/video/<id>.m3u8` by string
+//    concatenation and never fetched it. That path answers HTTP 403 for every
+//    id, with every combination of User-Agent / Referer / Origin we tried.
+//    The genuine manifest URL is a short-lived signed link from
+//    /player/metadata/video/<id>, and even that answers 403 from a datacenter
+//    IP, which is exactly what a Netlify function is.
+//
+// 2. Even with a valid manifest, we could not have delivered a video file.
+//    Dailymotion is HLS-only: no progressive MP4 exists. Saving a manifest
+//    hands the user a few kilobytes of text named ".m3u8", not a video. The
+//    old code marked this option `isHls: true` and the UI still rendered it as
+//    "صوت وصورة، تحميل فوري" because nothing ever consumed that flag.
+//
+// Fixing this properly means fetching the manifest, downloading every segment,
+// and concatenating them with ffmpeg.wasm. That is real work we may do later
+// (see ROADMAP), but until it exists the honest move is to not offer the
+// button at all.

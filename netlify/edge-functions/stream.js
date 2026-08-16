@@ -26,12 +26,9 @@ const ALLOWED_HOSTS = [
   /(?:^|\.)tiktokv\.com$/,
   /(?:^|\.)muscdn\.com$/,
   /(?:^|\.)akamaized\.net$/,
-  /(?:^|\.)vimeocdn\.com$/,
   /(?:^|\.)redd\.it$/,
   /(?:^|\.)redditmedia\.com$/,
   /(?:^|\.)twimg\.com$/,
-  /(?:^|\.)dailymotion\.com$/,
-  /(?:^|\.)dmcdn\.net$/,
   // Piped / Invidious mirrors proxy YouTube media on their own domains, so when
   // extraction falls back to a mirror the resulting urls must be streamable too.
   /(?:^|\.)piped\.[\w.]+$/,
@@ -53,10 +50,8 @@ function originHeadersFor(host) {
   if (/tiktok|muscdn/.test(host)) {
     return { Referer: 'https://www.tiktok.com/', Origin: 'https://www.tiktok.com' };
   }
-  if (/vimeocdn/.test(host)) return { Referer: 'https://player.vimeo.com/' };
   if (/redd\.it|redditmedia/.test(host)) return { Referer: 'https://www.reddit.com/' };
   if (/twimg/.test(host)) return { Referer: 'https://twitter.com/' };
-  if (/dailymotion|dmcdn/.test(host)) return { Referer: 'https://www.dailymotion.com/' };
   if (/googlevideo/.test(host)) {
     // googlevideo is picky: it wants a plausible client UA, and no Referer.
     return {

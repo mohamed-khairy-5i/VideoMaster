@@ -19,6 +19,11 @@ import { SUPPORTED_PLATFORMS } from '../utils/api';
  *
  * Now the data is keyed off SUPPORTED_PLATFORMS, so an unsupported slug cannot
  * render a page, and every capability line describes real extractor behaviour.
+ *
+ * Vimeo and Dailymotion were deleted here for the same reason Instagram and
+ * Facebook were: the extractor cannot deliver a file, so the page would be a
+ * promise we break. Vimeo is DRM-encrypted end to end; Dailymotion is HLS-only
+ * behind a 403. Details are in netlify/functions/lib/platforms.js.
  */
 const DETAIL = {
   youtube: {
@@ -45,26 +50,16 @@ const DETAIL = {
     cannot: ['الحسابات الخاصة', 'المقاطع المحجوبة جغرافيًا'],
     note: 'إن رفض تيك توك الطلب، نعود إلى بيانات oEmbed العامة، وقد تأتي النسخة حينها بعلامة مائية.',
   },
-  vimeo: {
-    blurb: 'حمّل من فيميو بالجودات التي يوفّرها الناشر.',
-    can: ['كل الجودات المتاحة في مشغّل الفيديو', 'ملفات بصوت مدموج جاهزة فورًا'],
-    cannot: ['الفيديوهات المحمية بكلمة مرور', 'المحتوى المدفوع أو المقيّد بنطاق معيّن'],
-  },
   twitter: {
     blurb: 'حمّل الفيديوهات والصور المتحركة من تويتر/إكس.',
     can: ['كل الجودات المرفقة بالمنشور', 'روابط twitter.com و x.com'],
-    cannot: ['الحسابات المحمية', 'المنشورات المحذوفة'],
+    cannot: ['الحسابات المحمية', 'المنشورات المحذوفة', 'المنشورات التي لا تحتوي فيديو'],
   },
   reddit: {
     blurb: 'حمّل من ريديت مع الصوت، وهو ما تفشل فيه أدوات كثيرة.',
     can: ['دمج مسار الصورة مع مسار الصوت المنفصل', 'روابط reddit.com و redd.it'],
     cannot: ['المجتمعات الخاصة', 'الفيديوهات المستضافة خارج ريديت'],
     note: 'ريديت يخزّن الصوت في ملف منفصل، لذلك تُدمج معظم فيديوهاته داخل متصفحك.',
-  },
-  dailymotion: {
-    blurb: 'حمّل من ديلي موشن بالجودات المتاحة.',
-    can: ['الجودات التي يوفّرها المشغّل', 'روابط dailymotion.com و dai.ly'],
-    cannot: ['المحتوى المقيّد جغرافيًا', 'البثّ المباشر'],
   },
 };
 

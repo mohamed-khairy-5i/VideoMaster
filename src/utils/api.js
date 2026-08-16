@@ -11,13 +11,20 @@ export class APIError extends Error {
   }
 }
 
+// This list is the single source of truth for "what actually works", and it is
+// deliberately short. A platform only earns a place here once we have verified
+// that it returns real video bytes, not merely a successful-looking JSON blob.
+//
+// Removed after end-to-end byte testing:
+//   vimeo        - every stream is DRM-encrypted (Widevine/PlayReady/FairPlay).
+//                  Decrypting it would be DMCA 1201 circumvention.
+//   dailymotion  - HLS only, and the manifest URL answered 403. We would have
+//                  been handing users a text file named .m3u8.
 const SUPPORTED = [
   { key: 'youtube', label: 'YouTube', test: /(youtube\.com|youtu\.be|youtube-nocookie\.com)/i },
   { key: 'tiktok', label: 'TikTok', test: /tiktok\.com/i },
-  { key: 'vimeo', label: 'Vimeo', test: /vimeo\.com/i },
   { key: 'reddit', label: 'Reddit', test: /(reddit\.com|redd\.it)/i },
   { key: 'twitter', label: 'Twitter / X', test: /(twitter\.com|x\.com)/i },
-  { key: 'dailymotion', label: 'Dailymotion', test: /(dailymotion\.com|dai\.ly)/i },
 ];
 
 export const SUPPORTED_PLATFORMS = SUPPORTED.map(({ key, label }) => ({ key, label }));
@@ -136,7 +143,6 @@ export function buildDownloadOptions(info) {
       instant: true,
       needsMux: false,
       noWatermark: f.noWatermark,
-      isHls: f.isHls,
       note: f.noWatermark ? 'بدون علامة مائية' : 'صوت وصورة، تحميل فوري',
     });
   }

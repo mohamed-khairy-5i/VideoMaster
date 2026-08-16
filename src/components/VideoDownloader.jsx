@@ -21,8 +21,8 @@ import {
 import { muxVideoAudio, saveBlob, canMuxSafely } from '../utils/muxer';
 
 const PLATFORM_LABEL = {
-  youtube: 'YouTube', tiktok: 'TikTok', vimeo: 'Vimeo',
-  reddit: 'Reddit', twitter: 'Twitter / X', dailymotion: 'Dailymotion',
+  youtube: 'YouTube', tiktok: 'TikTok',
+  reddit: 'Reddit', twitter: 'Twitter / X',
 };
 
 export default function VideoDownloader() {

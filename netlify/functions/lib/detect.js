@@ -9,14 +9,8 @@ export const PLATFORMS = {
     supported: true,
   },
   tiktok: { label: 'TikTok', pattern: /(?:^|\.)(tiktok\.com|tiktokv\.com)$/, supported: true },
-  vimeo: { label: 'Vimeo', pattern: /(?:^|\.)vimeo\.com$/, supported: true },
   reddit: { label: 'Reddit', pattern: /(?:^|\.)(reddit\.com|redd\.it)$/, supported: true },
   twitter: { label: 'Twitter / X', pattern: /(?:^|\.)(twitter\.com|x\.com|t\.co)$/, supported: true },
-  dailymotion: {
-    label: 'Dailymotion',
-    pattern: /(?:^|\.)(dailymotion\.com|dai\.ly)$/,
-    supported: true,
-  },
 };
 
 // Hostnames the streaming proxy is allowed to fetch bytes from.
@@ -30,12 +24,9 @@ export const STREAM_HOST_ALLOWLIST = [
   /(?:^|\.)tiktokcdn-us\.com$/,
   /(?:^|\.)muscdn\.com$/,
   /(?:^|\.)akamaized\.net$/,
-  /(?:^|\.)vimeocdn\.com$/,
   /(?:^|\.)redd\.it$/,
   /(?:^|\.)redditmedia\.com$/,
   /(?:^|\.)twimg\.com$/,
-  /(?:^|\.)dailymotion\.com$/,
-  /(?:^|\.)dmcdn\.net$/,
 ];
 
 export function isAllowedStreamHost(hostname) {

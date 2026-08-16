@@ -6,15 +6,51 @@
 // without deploying. It hits the real network on purpose.
 
 import { extractYouTube } from '../netlify/functions/lib/youtube.js';
-import { extractVimeo } from '../netlify/functions/lib/platforms.js';
 import extractHandler from '../netlify/functions/extract.js';
 import streamHandler from '../netlify/edge-functions/stream.js';
 
+// Why this suite now checks bytes and not just object shape:
+//
+// The previous version asserted `r.title && formatCount > 0`. A Dailymotion
+// extractor that built its download URL by string concatenation, never fetched
+// it, and returned a manifest link that answered 403 passed this test for its
+// entire life. The test was measuring that we had built an object, not that a
+// user could download a video. Shape assertions cannot catch a dead URL, so
+// every extractor case below is followed by a real ranged GET.
 const CASES = [
   { name: 'YouTube (classic)', fn: () => extractYouTube('https://www.youtube.com/watch?v=dQw4w9WgXcQ') },
   { name: 'YouTube (youtu.be)', fn: () => extractYouTube('https://youtu.be/9bZkp7q19f0') },
-  { name: 'Vimeo', fn: () => extractVimeo('https://vimeo.com/76979871') },
 ];
+
+/**
+ * Fetch the first bytes of a stream and confirm they are really media.
+ * A 200 response is not enough: a 403 HTML error page and an m3u8 playlist are
+ * both "successful" fetches that are useless to the user. We look at the magic
+ * bytes instead.
+ */
+async function assertRealMedia(url) {
+  const headers = { 'User-Agent': 'Mozilla/5.0', Range: 'bytes=0-4095' };
+  if (/tiktok|muscdn/.test(url)) headers.Referer = 'https://www.tiktok.com/';
+  if (/redd\.it|redditmedia/.test(url)) headers.Referer = 'https://www.reddit.com/';
+  if (/twimg/.test(url)) headers.Referer = 'https://twitter.com/';
+
+  const res = await fetch(url, { headers });
+  if (!res.ok && res.status !== 206) return { ok: false, why: `HTTP ${res.status}` };
+
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.length === 0) return { ok: false, why: 'empty body' };
+
+  const head = new TextDecoder('latin1').decode(buf.slice(0, 64));
+  if (head.startsWith('#EXTM3U')) return { ok: false, why: 'HLS playlist, not a video file' };
+  if (/^\s*<(!doctype|html)/i.test(head)) return { ok: false, why: 'HTML error page' };
+
+  // MP4/MOV carry an 'ftyp' box early; WebM/Matroska start with 0x1A45DFA3.
+  const isMp4 = head.includes('ftyp');
+  const isWebm = buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3;
+  if (!isMp4 && !isWebm) return { ok: false, why: 'unrecognised container' };
+
+  return { ok: true, bytes: buf.length, kind: isMp4 ? 'mp4' : 'webm' };
+}
 
 let pass = 0;
 let fail = 0;
@@ -29,12 +65,21 @@ for (const c of CASES) {
   const t = Date.now();
   try {
     const r = await c.fn();
-    const n =
-      (r.formats.muxed?.length || 0) +
-      (r.formats.videoOnly?.length || 0) +
-      (r.formats.audioOnly?.length || 0);
-    if (!r.title || n === 0) throw new Error('no title or no formats');
-    ok(`${c.name} · "${r.title.slice(0, 40)}" · ${n} formats · via ${r.extractedVia} · ${Date.now() - t}ms`);
+    const all = [
+      ...(r.formats.muxed || []),
+      ...(r.formats.videoOnly || []),
+      ...(r.formats.audioOnly || []),
+    ];
+    if (!r.title || all.length === 0) throw new Error('no title or no formats');
+
+    // The part that actually matters: can we pull real media bytes back?
+    const probe = await assertRealMedia(all[0].url);
+    if (!probe.ok) throw new Error(`format looked fine but ${probe.why}`);
+
+    ok(
+      `${c.name} · "${r.title.slice(0, 32)}" · ${all.length} formats · via ${r.extractedVia}` +
+        ` · ${probe.bytes}B real ${probe.kind} · ${Date.now() - t}ms`
+    );
     pass++;
   } catch (e) {
     // YouTube rate-limits by source IP. On a shared cloud/CI address some videos
