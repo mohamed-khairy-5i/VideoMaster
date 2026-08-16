@@ -2,7 +2,7 @@
   "name": "videomaster",
   "version": "2.0.0",
   "private": true,
-  "description": "محمّل فيديو حقيقي وسريع بدون إعلانات، يدعم YouTube و TikTok و Vimeo و Twitter/X و Reddit و Dailymotion",
+  "description": "محمّل فيديو حقيقي وسريع بدون إعلانات، يدعم YouTube و TikTok و Twitter/X و Reddit",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -105,8 +105,14 @@ export default function AboutPage() {
 
       <section className="mt-12">
         <h2 className="text-xl font-semibold text-content">المنصات المدعومة</h2>
+        {/*
+          The count is derived, never typed. It used to read "ست منصات" and went
+          stale the moment Vimeo and Dailymotion were removed, which is exactly
+          the class of quiet lie this rewrite exists to eliminate.
+        */}
         <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-content-muted">
-          ست منصات، كل واحدة مُختبرة. القائمة قصيرة لأنها حقيقية.
+          {SUPPORTED_PLATFORMS.length} منصات، كل واحدة مُختبرة ببايتات حقيقية.
+          القائمة قصيرة لأنها صادقة: أزلنا كل منصة لا نستطيع تسليم ملف منها.
         </p>
         <ul className="mt-5 flex flex-wrap gap-2">
           {SUPPORTED_PLATFORMS.map(({ key, label }) => (

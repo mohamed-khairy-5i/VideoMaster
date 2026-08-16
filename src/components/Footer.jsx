@@ -7,7 +7,8 @@ import { SUPPORTED_PLATFORMS } from '../utils/api';
  * which pointed at routes that do not exist: /how-to-use, /platforms, /api,
  * /faq, /contact, /blog, /careers, /disclaimer, /dmca. Every one rendered a
  * blank page. It also listed GitHub and Twitter icons with href="#" and claimed
- * support for "أكثر من 50 منصة" while the engine handles six.
+ * support for "أكثر من 50 منصة" while the engine handled a handful. The list
+ * below is rendered from SUPPORTED_PLATFORMS so it can never drift again.
  *
  * What is left: the platform pages that really exist, the two legal pages that
  * really exist, and the disclaimer. No invented "Careers" column for a project
