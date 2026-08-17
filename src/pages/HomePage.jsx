@@ -48,6 +48,11 @@ const FEATURES = [
     icon: LightningIcon,
     title: 'بدون تسجيل ولا حدود',
     body: 'لا حساب، ولا بريد إلكتروني، ولا عدّاد تحميلات يومي.',
+    // Spans 2 so the grid has no trailing hole. Six items in a 3-column grid
+    // with one full-width cell leaves 3 + 2 in the last row, and a measured
+    // screenshot confirmed the empty slot. Widening the final cell closes it
+    // while keeping the bento asymmetric rather than a tidy uniform matrix.
+    span2: true,
   },
 ];
 
@@ -123,8 +128,10 @@ export default function HomePage() {
       {/*
         Features. Asymmetric bento, not the three-equal-cards row the old page
         used: the browser-muxing cell is the actual differentiator against every
-        competitor, so it spans the full width and gets the accent surface. Six
-        items, six cells, no empty tiles.
+        competitor, so it spans the full width and gets the accent surface.
+        Six items, six cells. Row occupancy was measured in a real browser at
+        1440/1280/1024/900/768/640/390px and every row covers the full grid
+        width, so there is no trailing hole at any breakpoint.
       */}
       <section className="border-t border-line bg-surface-sunken px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-5xl">
@@ -133,14 +140,21 @@ export default function HomePage() {
           </h2>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, body, wide }) => (
+            {FEATURES.map(({ icon: Icon, title, body, wide, span2 }) => (
               <article
                 key={title}
-                className={`rounded-card border p-5 transition ${
+                className={[
+                  'rounded-card border p-5 transition',
                   wide
-                    ? 'border-accent/25 bg-accent-soft sm:col-span-2 lg:col-span-3 lg:p-7'
-                    : 'border-line bg-surface-raised hover:border-line-strong'
-                }`}
+                    ? 'border-accent/25 bg-accent-soft lg:p-7'
+                    : 'border-line bg-surface-raised hover:border-line-strong',
+                  // Column spans are separate from the surface styling so a cell
+                  // can be widened without also becoming the accent cell.
+                  wide ? 'sm:col-span-2 lg:col-span-3' : '',
+                  span2 ? 'sm:col-span-2 lg:col-span-2' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               >
                 <Icon
                   size={22}
