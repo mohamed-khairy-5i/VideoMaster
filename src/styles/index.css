@@ -27,7 +27,13 @@
 
     --text: 24 24 27;
     --text-muted: 82 82 91;
-    --text-subtle: 122 122 133;
+    /* Darkened from 122/122/133, which measured 3.86:1 against --surface-sunken
+       and so failed WCAG AA for normal-size text. The footer disclaimer and the
+       copyright line use it at 12px, exactly where legibility matters most and
+       where a "subtle" grey is most tempting. 111/111/120 measures 4.53:1 on
+       sunken, 4.85 on surface and 4.98 on raised, so it clears AA on every
+       background this token is used against, not just the lightest one. */
+    --text-subtle: 111 111 120;
 
     --accent: 29 78 216;
     --accent-hover: 30 64 175;
