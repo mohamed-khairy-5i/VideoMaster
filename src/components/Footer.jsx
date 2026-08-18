@@ -38,12 +38,21 @@ export default function Footer() {
             <h2 id="footer-platforms" className="text-sm font-semibold text-content">
               المنصات
             </h2>
-            <ul className="mt-4 space-y-2.5">
+            {/*
+              space-y-1 rather than 2.5 because each link now reserves its own
+              28px min-height: a bare 14px link measured 21px tall, under the
+              24x24 CSS px floor in WCAG 2.2 SC 2.5.8. The inline exception in
+              that criterion covers links inside a sentence, which these are
+              not. Trading list gap for link height keeps the row pitch the
+              same while making the tap target legal.
+            */}
+            <ul className="mt-4 space-y-1">
               {SUPPORTED_PLATFORMS.map(({ key, label }) => (
                 <li key={key}>
                   <Link
                     to={`/platform/${key}`}
-                    className="text-sm text-content-muted transition hover:text-accent"
+                    className="inline-flex min-h-[28px] items-center text-sm text-content-muted
+                               transition hover:text-accent"
                   >
                     {label}
                   </Link>
@@ -56,7 +65,7 @@ export default function Footer() {
             <h2 id="footer-legal" className="text-sm font-semibold text-content">
               الموقع
             </h2>
-            <ul className="mt-4 space-y-2.5">
+            <ul className="mt-4 space-y-1">
               {[
                 { label: 'من نحن', to: '/about' },
                 { label: 'سياسة الخصوصية', to: '/privacy' },
@@ -65,7 +74,8 @@ export default function Footer() {
                 <li key={to}>
                   <Link
                     to={to}
-                    className="text-sm text-content-muted transition hover:text-accent"
+                    className="inline-flex min-h-[28px] items-center text-sm text-content-muted
+                               transition hover:text-accent"
                   >
                     {label}
                   </Link>
