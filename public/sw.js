@@ -21,21 +21,66 @@
 // visitors keep the old design forever. That is why the old 'v1.2.0' keys are
 // gone rather than reused.
 
-const CACHE_VERSION = 'v3';
+// Bumped to v5: install-time asset precache plus pathname-keyed cache entries.
+// A visitor holding an older cache must not keep a version that could not boot
+// offline, so the key changes with every behavioural change in this file.
+const CACHE_VERSION = 'v5';
 const SHELL_CACHE = `shell-${CACHE_VERSION}`;
 
-// Only what is needed to render something offline. Hashed assets are added
-// lazily on first visit, because their filenames change every build and cannot
-// be listed here.
+// Only what is needed to render something offline. Hashed asset filenames change
+// every build and cannot be listed here, so they are discovered at install time
+// by parsing index.html (see cacheShell below).
 const SHELL_ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.svg'];
+
+/*
+ * Caching the HTML alone is not enough, and the previous version got this wrong
+ * in a way that only showed up when measured. On a first visit the page requests
+ * its hashed JS and CSS before this worker takes control, so those requests
+ * never reach the fetch handler and never enter the cache. Going offline then
+ * produced an HTTP 200 with a completely blank body: the shell HTML was served,
+ * but the bundle it needs to boot was missing. Measured before the fix:
+ *
+ *   after 1st load: 4 entries, 0 under /assets/   -> offline = blank page
+ *   after reload:   8 entries, 4 under /assets/   -> offline = works
+ *
+ * So the offline promise held only for returning visitors, which is the opposite
+ * of what an offline shell is for. Fix: read index.html during install and cache
+ * the assets it references, so the very first visit is already offline-capable.
+ */
+async function cacheShell(cache) {
+  // addAll() rejects the whole install if any single request fails, which would
+  // leave the worker permanently uninstalled. Cache individually.
+  await Promise.allSettled(SHELL_ASSETS.map((asset) => cache.add(asset)));
+
+  try {
+    const res = await fetch('/index.html', { cache: 'reload' });
+    if (!res.ok) return;
+    const html = await res.text();
+    // Same-origin build output only. Vite emits hashed files under /assets/,
+    // referenced from src="/assets/..." and href="/assets/...".
+    const refs = new Set();
+    for (const m of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) refs.add(m[1]);
+    // put() keyed on the plain path rather than add(), so the entry is stored
+    // under a key the fetch handler can find regardless of the request mode the
+    // browser later uses. See the long note in the /assets/ branch below.
+    await Promise.allSettled(
+      [...refs].map(async (u) => {
+        const r = await fetch(u, { cache: 'reload' });
+        if (r.ok) await cache.put(u, r);
+      })
+    );
+  } catch {
+    // Offline or a fetch failure during install: the lazy /assets/ path in the
+    // fetch handler still populates the cache on a later visit. Never let this
+    // reject, or the worker fails to install at all.
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(SHELL_CACHE);
-      // addAll() rejects the whole install if any single request fails, which
-      // would leave the worker permanently uninstalled. Cache individually.
-      await Promise.allSettled(SHELL_ASSETS.map((asset) => cache.add(asset)));
+      await cacheShell(cache);
       await self.skipWaiting();
     })()
   );
@@ -105,11 +150,37 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       (async () => {
         const cache = await caches.open(SHELL_CACHE);
-        const hit = await cache.match(request);
+        /*
+         * Match on the URL string, not the Request object. Vite emits its module
+         * scripts with a `crossorigin` attribute, so the browser requests them
+         * in CORS mode, while cache.add() during install stores them as
+         * same-origin 'basic' responses. cache.match(request) compares those and
+         * misses, which is a genuinely invisible failure: the entry is sitting in
+         * the cache, DevTools shows it, and the request still goes to the network
+         * and dies offline. Measured symptom before this fix, offline first
+         * visit:
+         *
+         *   script /assets/index-*.js   net::ERR_FAILED
+         *   script /assets/vendor-*.js  net::ERR_FAILED
+         *   script /assets/router-*.js  net::ERR_FAILED
+         *   -> HTTP 200 shell with bodyLen 0, a blank white page
+         *
+         * The stylesheet has no crossorigin attribute and so was the only asset
+         * that resolved, which is what made the pattern obvious. Keying on
+         * url.pathname sidesteps request-mode comparison entirely, and is safe
+         * because these filenames are content-hashed.
+         */
+        const hit =
+          (await cache.match(url.pathname, { ignoreVary: true })) ||
+          (await cache.match(request, { ignoreVary: true }));
         if (hit) return hit;
 
+        // No cache entry: go to the network. A rejection here propagates to the
+        // page as a failed request, which is correct. Returning a synthetic 200
+        // would leave the page half-booted with no diagnosable cause.
         const response = await fetch(request);
-        if (response.ok) cache.put(request, response.clone());
+        // Store under the pathname so a later CORS-mode request still hits.
+        if (response.ok) await cache.put(url.pathname, response.clone());
         return response;
       })()
     );
