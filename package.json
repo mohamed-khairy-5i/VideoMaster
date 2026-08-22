@@ -11,7 +11,8 @@
     "lint": "eslint src netlify scripts public/sw.js --ext js,jsx,mjs --max-warnings 0",
     "test:extract": "node scripts/verify-engine.mjs",
     "test:sw": "node scripts/verify-sw.mjs",
-    "verify": "npm run lint && npm run test:sw && npm run test:extract"
+    "test:mux": "node scripts/verify-muxer.mjs",
+    "verify": "npm run lint && npm run test:sw && npm run test:mux && npm run test:extract"
   },
   "keywords": [
     "video-downloader",

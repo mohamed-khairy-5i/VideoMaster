@@ -104,37 +104,53 @@ export async function muxVideoAudio({ videoUrl, audioUrl, onProgress, onStatus }
   await ffmpeg.writeFile('v.dat', video);
   await ffmpeg.writeFile('a.dat', audio);
 
-  ffmpeg.on('progress', ({ progress }) => {
+  // Named, not anonymous, so it can be removed again. ffmpeg's `on()` pushes
+  // into an array with no dedup, and getFFmpeg caches the instance for the
+  // whole page session, so an anonymous listener here would survive every
+  // merge: on merge ten, ffmpeg calls ten callbacks per progress tick, nine of
+  // them belonging to downloads that already finished. Measured over ten
+  // merges by scripts/verify-muxer.mjs: 590 progress callbacks before this
+  // change, 140 after.
+  const handleFfmpegProgress = ({ progress }) => {
     if (progress > 0 && progress <= 1) onProgress?.(78 + progress * 20);
-  });
+  };
+  ffmpeg.on('progress', handleFfmpegProgress);
 
-  // `-c copy` = remux only, no re-encode: lossless and roughly realtime.
-  // faststart moves the moov atom to the front so the file plays while copying.
-  await ffmpeg.exec([
-    '-i', 'v.dat',
-    '-i', 'a.dat',
-    '-c', 'copy',
-    '-map', '0:v:0',
-    '-map', '1:a:0',
-    '-movflags', '+faststart',
-    '-f', 'mp4',
-    'out.mp4',
-  ]);
+  try {
+    // `-c copy` = remux only, no re-encode: lossless and roughly realtime.
+    // faststart moves the moov atom to the front so the file plays while copying.
+    await ffmpeg.exec([
+      '-i', 'v.dat',
+      '-i', 'a.dat',
+      '-c', 'copy',
+      '-map', '0:v:0',
+      '-map', '1:a:0',
+      '-movflags', '+faststart',
+      '-f', 'mp4',
+      'out.mp4',
+    ]);
 
-  const data = await ffmpeg.readFile('out.mp4');
-  onProgress?.(100);
-  onStatus?.('تم الدمج');
+    const data = await ffmpeg.readFile('out.mp4');
+    onProgress?.(100);
+    onStatus?.('تم الدمج');
 
-  // Free the virtual filesystem so repeated merges do not exhaust memory.
-  for (const f of ['v.dat', 'a.dat', 'out.mp4']) {
-    try {
-      await ffmpeg.deleteFile(f);
-    } catch {
-      /* non-fatal */
+    return new Blob([data.buffer ?? data], { type: 'video/mp4' });
+  } finally {
+    // Both of these have to happen even when the merge throws. Previously they
+    // sat after the return path, so a failed merge left the listener attached
+    // and both input tracks resident in the wasm heap. Two failed 4K attempts
+    // could then strand several GB and make every later merge fail for a
+    // reason that had nothing to do with the file the user just picked.
+    ffmpeg.off('progress', handleFfmpegProgress);
+
+    for (const f of ['v.dat', 'a.dat', 'out.mp4']) {
+      try {
+        await ffmpeg.deleteFile(f);
+      } catch {
+        /* the file may never have been written; nothing to free */
+      }
     }
   }
-
-  return new Blob([data.buffer ?? data], { type: 'video/mp4' });
 }
 
 /** Trigger a save dialog for an in-memory Blob. */
